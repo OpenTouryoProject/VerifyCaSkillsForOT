@@ -102,6 +102,8 @@ this.ReturnValue = testReturn;   // ← 先に設定する
 ASP.NET Core MVC のサンプルでは、コントローラの `this.ActionName` を `MethodName` に渡している。
 つまり **アクション名と `UOC_` メソッド名が対応する**。
 
+**★ 既存の共有 LayerB に相乗りする場合、`MethodName` に一意な UOC 名を渡す**（`this.ActionName` 等の汎用名だと、その LayerB の**既存 `UOC_<名>(別の引数型)` にレイトバインドで飛び**引数型不一致で失敗＝**例外が捕捉され画面が無反応**になり原因に辿りにくい・実測。呼び出し側の作法は全フレームワーク共通＝`opentouryo-p-call-business`）。
+
 ## 引数クラス・戻り値クラス
 
 **定義テンプレート（`MyParameterValue`/`MyReturnValue` を継承・Base コンストラクタへ引き渡し）は
