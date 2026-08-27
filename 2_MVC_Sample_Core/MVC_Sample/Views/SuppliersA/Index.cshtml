@@ -1,0 +1,60 @@
+﻿@*
+    //**********************************************************************************
+    //* マスタ・テーブル（Suppliers）保守：画面Ａ
+    //**********************************************************************************
+    //* 画面名          ：SuppliersA/Index
+    //* 画面日本語名    ：Suppliers 画面Ａ（件数確認・画面遷移）
+    //*
+    //* 作成日時        ：2026/08/27
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/08/27  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using MVC_Sample.Models.ViewModels
+@model SuppliersViewModel
+
+@{
+    ViewBag.Title = "Suppliers 画面Ａ";
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>Suppliers 画面Ａ（件数確認）</h4>
+<p class="text-muted">
+    ［件数確認］で Suppliers のデータ件数を共通Dao 経由で取得し、OK メッセージ ダイアログで表示します。<br />
+    ［一覧へ］で画面Ｂ（一覧＆バッチ更新）に遷移します。
+</p>
+
+@* フッタのボタンから submit するフォーム。id を付けて @section 側から form= で紐付ける。 *@
+<form id="formA" method="post" action="@Url.Action("SelectCount", "SuppliersA")">
+    @Html.AntiForgeryToken()
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。使わないボタンは disabled にする。
+   ★ @section の中身は @RenderBody() の外＝<form> の外に描画されるので、
+     submit ボタンには form="formA" を付けて明示的にフォームへ紐付ける（付けないと無反応）。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formA" id="btnMain1" class="btn btn-primary"
+            formaction="@Url.Action("SelectCount", "SuppliersA")">件数確認</button>
+    <button type="button" id="btnMain2" class="btn btn-info"
+            onclick="location.href='@Url.Action("Index", "SuppliersB")';">一覧へ</button>
+    <button type="button" id="btnMain3" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain4" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary" disabled>－</button>
+}
+
+@* ダイアログは JavaScript を使用する（共通仕様）。OK メッセージ ダイアログ＝window.alert *@
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Json.Serialize(Model.Message));</text>
+        }
+    </script>
+}

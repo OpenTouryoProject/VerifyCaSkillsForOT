@@ -11,4 +11,10 @@
   <Transmission id="testWebService2" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
   <Transmission id="testWebService3" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
   <Transmission id="testWebService4" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
-</TMD>
+  <!-- マスタ・テーブル（Suppliers）保守
+       ★ TMProtocolDefinition の各サービス論理名に1対1で対応させる。
+         protocol=1 はクライアント側のこの定義で、protocol=4/5 は
+         ServiceInterface（サーバ側）の同じ定義で解決される。 -->
+  <Transmission id="SuppliersInProcess" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="SuppliersWCFTcp" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="SuppliersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" /></TMD>

@@ -10,6 +10,13 @@
          （リンク切れはビルドでも aspnet_compiler でも検出されず、実行時も
            Forms 認証／画面遷移チェックが先に効いて 302 になるだけなので、
            画面を削ったら必ずこのメニューも手で掃除する。） -->
+    <ul>
+        <li>マスタ保守
+            <ul>
+                <li><a href="<%= this.ResolveUrl("~/Aspx/Suppliers/SuppliersA.aspx") %>">Suppliers（件数確認・一覧＆バッチ更新）</a></li>
+            </ul>
+        </li>
+    </ul>
 </asp:Content>
 
 <asp:Content ID="cphFooterScripts" ContentPlaceHolderID="cphFooterScripts" Runat="Server">

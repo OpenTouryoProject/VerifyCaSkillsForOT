@@ -75,12 +75,20 @@
                             <li onclick="window.location.href = '@Url.Content("~/Crud2")';">
                                 <i class="fa fa-arrow-circle-right"></i> メニュー２
                             </li>
+                            <li onclick="window.location.href = '@Url.Content("~/SuppliersA")';">
+                                <i class="fa fa-arrow-circle-right"></i> マスタ保守（Suppliers）
+                            </li>
                         }
                     </ul>
                 </div>
             </div>
             <div id="contents" class="col-sm-8 col-md-9">
                 @RenderBody()
+                @* 共通仕様：すべての画面のメイン ボタンは、コンテンツのフッタ部に5つ配置する。
+                   キャプションと活性/非活性は、各画面の @section FooterButtonsSection で差し替える。 *@
+                <div id="footer-buttons" class="mt-3 pt-3 border-top">
+                    @RenderSection("FooterButtonsSection", required: false)
+                </div>
             </div>
         </div>
     </div>

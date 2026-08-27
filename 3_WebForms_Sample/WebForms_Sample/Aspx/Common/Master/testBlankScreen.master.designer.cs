@@ -51,6 +51,46 @@ namespace WebForms_Sample.Aspx.Common.Master
         protected global::System.Web.UI.WebControls.ContentPlaceHolder ContentPlaceHolder_A;
 
         /// <summary>
+        /// btnMButton1 コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnMButton1;
+        /// <summary>
+        /// btnMButton2 コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnMButton2;
+        /// <summary>
+        /// btnMButton3 コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnMButton3;
+        /// <summary>
+        /// btnMButton4 コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnMButton4;
+        /// <summary>
+        /// btnMButton5 コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnMButton5;
+        /// <summary>
         /// ChildScreenType コントロール。
         /// </summary>
         /// <remarks>

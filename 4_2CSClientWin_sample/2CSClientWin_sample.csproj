@@ -118,7 +118,15 @@
       <SubType>Designer</SubType>
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
-  </ItemGroup>
+  
+    <Compile Include="Common\SuppliersParameterValue.cs" />
+    <Compile Include="Common\SuppliersReturnValue.cs" />
+    <Compile Include="Dao\DaoSuppliers.cs" />
+    <Compile Include="Dao\SuppliersEntity.cs" />
+    <Compile Include="Suppliers\SuppliersBaseForm.cs" />
+    <Compile Include="Suppliers\SuppliersScreenA.cs" />
+    <Compile Include="Suppliers\SuppliersScreenB.cs" />
+    <Compile Include="Suppliers\ScreenSelector.cs" /></ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>

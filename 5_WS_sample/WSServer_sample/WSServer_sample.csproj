@@ -75,7 +75,8 @@
     <Compile Include="Dao\DaoShippers.cs" />
     <Compile Include="Dao\LayerD.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
+    <Compile Include="Dao\DaoSuppliers.cs" />
+    <Compile Include="Dao\SuppliersEntity.cs" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WSIFType_sample\WSIFType_sample.csproj">
       <Project>{E4ECBB27-684E-49C2-B0F5-6CEFE33F4BDB}</Project>

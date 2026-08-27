@@ -330,7 +330,9 @@
     <Content Include="Scripts\WebForms\WebUIValidation.js" />
     <Content Include="Web.config" />
     <Content Include="Bundle.config" />
-  </ItemGroup>
+  
+    <Content Include="Aspx\Suppliers\SuppliersA.aspx" />
+    <Content Include="Aspx\Suppliers\SuppliersB.aspx" /></ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
@@ -401,7 +403,16 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
+  
+    <Compile Include="AppCode\Common\SuppliersParameterValue.cs" />
+    <Compile Include="AppCode\Common\SuppliersReturnValue.cs" />
+    <Compile Include="AppCode\Business\LayerB.cs" />
+    <Compile Include="AppCode\Dao\DaoSuppliers.cs" />
+    <Compile Include="AppCode\Dao\SuppliersEntity.cs" />
+    <Compile Include="Aspx\Suppliers\SuppliersA.aspx.cs" />
+    <Compile Include="Aspx\Suppliers\SuppliersA.aspx.designer.cs" />
+    <Compile Include="Aspx\Suppliers\SuppliersB.aspx.cs" />
+    <Compile Include="Aspx\Suppliers\SuppliersB.aspx.designer.cs" /></ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
   </ItemGroup>

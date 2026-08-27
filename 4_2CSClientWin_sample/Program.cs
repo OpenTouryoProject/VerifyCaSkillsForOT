@@ -83,7 +83,24 @@ namespace _2CSClientWin_sample
               ThreadExceptionEventHandler(Application_ThreadException);
 
             // 業務画面の表示（業務の開始）
-            Application.Run(new Form1());
+            // 共通仕様：初期画面は、ここで起動した選択ダイアログの結果で振り分ける。
+            using (_2CSClientWin_sample.Suppliers.ScreenSelector selector
+                       = new _2CSClientWin_sample.Suppliers.ScreenSelector())
+            {
+                if (selector.ShowDialog() != DialogResult.OK)
+                {
+                    return; // 選択せずに終わった場合
+                }
+
+                if (selector.Selected == _2CSClientWin_sample.Suppliers.ScreenSelector.SelectedScreen.SuppliersMaintenance)
+                {
+                    Application.Run(new _2CSClientWin_sample.Suppliers.SuppliersScreenA());
+                }
+                else
+                {
+                    Application.Run(new Form1());
+                }
+            }
         }
 
         // .NET TIPS > 適切に処理されなかった例外をキャッチするには？

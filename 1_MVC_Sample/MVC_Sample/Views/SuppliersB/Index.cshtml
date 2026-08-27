@@ -1,0 +1,130 @@
+﻿@*
+    //**********************************************************************************
+    //* マスタ・テーブル（Suppliers）保守：画面Ｂ
+    //**********************************************************************************
+    //* 画面名          ：SuppliersB/Index
+    //* 画面日本語名    ：Suppliers 画面Ｂ（一覧＆バッチ更新）
+    //*
+    //* 作成日時        ：2026/08/27
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/08/27  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using System
+@using System.Data
+@using MVC_Sample.Models.ViewModels
+@model SuppliersViewModel
+
+@{
+    ViewBag.Title = "Suppliers 画面Ｂ";
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>Suppliers 画面Ｂ（一覧＆バッチ更新）</h4>
+<p class="text-muted">
+    ［一覧取得］で自動生成Dao の参照処理をＢ層経由で実行します。<br />
+    グリッド中で行の追加・更新・削除を行い、［バッチ更新］でまとめてDBに反映します。
+</p>
+
+<form id="formB" method="post" action="@Url.Action("SelectAll", "SuppliersB")">
+    @Html.AntiForgeryToken()
+
+    @* ［行追加］はグリッド外のボタン（空行＝RowState:Added を足す） *@
+    <button type="submit" class="btn btn-success btn-sm mb-2"
+            formaction="@Url.Action("AddRow", "SuppliersB")">行追加</button>
+
+    @* 共通仕様：一覧は table タグを自前で生成し、tr タグをループで実装する *@
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>SupplierID</th>
+                <th>CompanyName</th>
+                <th>ContactName</th>
+                <th>ContactTitle</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>Region</th>
+                <th>PostalCode</th>
+                <th>Country</th>
+                <th>Phone</th>
+                <th>Fax</th>
+                <th>HomePage</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Suppliers != null)
+            {
+                @* ★ ここはコード文脈なので for に @ を付けない（付けると Razor パースエラー） *@
+                for (int i = 0; i < Model.Suppliers.Rows.Count; i++)
+                {
+                    DataRow dr = Model.Suppliers.Rows[i];
+
+                    @* ★ Deleted 行は描画しない（DefaultView から外れる） *@
+                    if (dr.RowState == DataRowState.Deleted) { continue; }
+
+                    int idx = i;   // ★ 表示連番ではなく DataTable の行インデックスを持ち回る
+                    string id = (dr["SupplierID"] == DBNull.Value) ? "(採番)" : dr["SupplierID"].ToString();
+
+                    <tr>
+                        @* ★ idx は Deleted を飛ばすので 0 起点の連番にならない。
+                             Rows.Index が無いとコレクションのモデルバインドが空になり、編集が静かに捨てられる。 *@
+                        <input type="hidden" name="Rows.Index" value="@idx" />
+                        <td>
+                            @id
+                            <input type="hidden" name="Rows[@idx].RowIndex" value="@idx" />
+                        </td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].CompanyName" value="@(dr["CompanyName"] == DBNull.Value ? "" : dr["CompanyName"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ContactName" value="@(dr["ContactName"] == DBNull.Value ? "" : dr["ContactName"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ContactTitle" value="@(dr["ContactTitle"] == DBNull.Value ? "" : dr["ContactTitle"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Address" value="@(dr["Address"] == DBNull.Value ? "" : dr["Address"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].City" value="@(dr["City"] == DBNull.Value ? "" : dr["City"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Region" value="@(dr["Region"] == DBNull.Value ? "" : dr["Region"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].PostalCode" value="@(dr["PostalCode"] == DBNull.Value ? "" : dr["PostalCode"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Country" value="@(dr["Country"] == DBNull.Value ? "" : dr["Country"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Phone" value="@(dr["Phone"] == DBNull.Value ? "" : dr["Phone"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Fax" value="@(dr["Fax"] == DBNull.Value ? "" : dr["Fax"].ToString())" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].HomePage" value="@(dr["HomePage"] == DBNull.Value ? "" : dr["HomePage"].ToString())" /></td>
+                        <td style="white-space: nowrap;">
+                            <button type="submit" class="btn btn-primary btn-sm"
+                                    formaction="@Url.Action("UpdateRow", "SuppliersB", new { rowIndex = idx })">更新</button>
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    formaction="@Url.Action("DeleteRow", "SuppliersB", new { rowIndex = idx })">削除</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。★ form="formB" が無いと押しても無反応。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formB" id="btnMain1" class="btn btn-primary"
+            formaction="@Url.Action("SelectAll", "SuppliersB")">一覧取得</button>
+    <button type="submit" form="formB" id="btnMain2" class="btn btn-warning"
+            formaction="@Url.Action("BatchUpdate", "SuppliersB")"
+            onclick="return window.confirm('バッチ更新します。よろしいですか？');">バッチ更新</button>
+    <button type="button" id="btnMain3" class="btn btn-secondary"
+            onclick="location.href='@Url.Action("Index", "SuppliersA")';">戻る</button>
+    <button type="button" id="btnMain4" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary" disabled>－</button>
+}
+
+@* ダイアログは JavaScript を使用する（共通仕様）。
+   YES/NO 確認ダイアログ＝window.confirm（［バッチ更新］の onclick）／通知＝window.alert *@
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Html.Raw(Json.Encode(Model.Message)));</text>
+        }
+    </script>
+}
