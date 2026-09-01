@@ -332,7 +332,9 @@
     <Content Include="Bundle.config" />
   
     <Content Include="Aspx\Suppliers\SuppliersA.aspx" />
-    <Content Include="Aspx\Suppliers\SuppliersB.aspx" /></ItemGroup>
+    <Content Include="Aspx\Suppliers\SuppliersB.aspx" />
+    <Content Include="Aspx\Orders\OrdersA.aspx" />
+    <Content Include="Aspx\Orders\OrdersB.aspx" /></ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
@@ -412,7 +414,15 @@
     <Compile Include="Aspx\Suppliers\SuppliersA.aspx.cs" />
     <Compile Include="Aspx\Suppliers\SuppliersA.aspx.designer.cs" />
     <Compile Include="Aspx\Suppliers\SuppliersB.aspx.cs" />
-    <Compile Include="Aspx\Suppliers\SuppliersB.aspx.designer.cs" /></ItemGroup>
+    <Compile Include="Aspx\Suppliers\SuppliersB.aspx.designer.cs" />
+    <Compile Include="AppCode\Common\OrdersParameterValue.cs" />
+    <Compile Include="AppCode\Common\OrdersReturnValue.cs" />
+    <Compile Include="AppCode\Dao\DaoOrders.cs" />
+    <Compile Include="AppCode\Dao\OrdersEntity.cs" />
+    <Compile Include="Aspx\Orders\OrdersA.aspx.cs" />
+    <Compile Include="Aspx\Orders\OrdersA.aspx.designer.cs" />
+    <Compile Include="Aspx\Orders\OrdersB.aspx.cs" />
+    <Compile Include="Aspx\Orders\OrdersB.aspx.designer.cs" /></ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
   </ItemGroup>

@@ -115,7 +115,10 @@
     <Compile Include="Suppliers\SuppliersBaseForm.cs" />
     <Compile Include="Suppliers\SuppliersScreenA.cs" />
     <Compile Include="Suppliers\SuppliersScreenB.cs" />
-    <Compile Include="Suppliers\ScreenSelector.cs" /></ItemGroup>
+    <Compile Include="Suppliers\ScreenSelector.cs" />
+    <Compile Include="Orders\OrdersBaseForm.cs" />
+    <Compile Include="Orders\OrdersScreenA.cs" />
+    <Compile Include="Orders\OrdersScreenB.cs" /></ItemGroup>
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT>
+  SELECT
+    COUNT(*)
+  FROM
+    [Orders]
+  <WHERE>
+    WHERE
+      <IF>AND [CustomerID] = @CustomerID</IF>
+      <IF>AND [EmployeeID] = @EmployeeID</IF>
+      <IF>AND [ShipVia] = @ShipVia</IF>
+      <IF>AND [ShipCountry] LIKE @ShipCountry</IF>
+  </WHERE>
+</ROOT>

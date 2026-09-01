@@ -99,6 +99,10 @@ namespace WSClientWin_sample
                 {
                     Application.Run(new WSClientWin_sample.Suppliers.SuppliersScreenA());
                 }
+                else if (selector.Selected == WSClientWin_sample.Suppliers.ScreenSelector.SelectedScreen.OrdersMaintenance)
+                {
+                    Application.Run(new WSClientWin_sample.Orders.OrdersScreenA());
+                }
                 else
                 {
                     Application.Run(new Form1());

@@ -1,0 +1,257 @@
+﻿@*
+    //**********************************************************************************
+    //* トランザクション・テーブル（Orders）保守：画面Ｂ
+    //**********************************************************************************
+    //* 画面名          ：OrdersB/Index
+    //* 画面日本語名    ：Orders 画面Ｂ（条件検索・ページング・バッチ更新）
+    //*
+    //* 作成日時        ：2026/08/28
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/08/28  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using System
+@using System.Data
+@using MVC_Sample.Models.ViewModels
+@model OrdersViewModel
+
+@{
+    ViewBag.Title = "Orders 画面Ｂ";
+
+    // マスタ（DDL・表示変換用）を「値 → 表示名」の辞書にしておく
+    Func<DataTable, string, string, Dictionary<string, string>> toMap = (dt, keyCol, textCol) =>
+    {
+        Dictionary<string, string> map = new Dictionary<string, string>();
+        if (dt != null)
+        {
+            foreach (DataRow r in dt.Rows)
+            {
+                map[Convert.ToString(r[keyCol]).Trim()] = Convert.ToString(r[textCol]);
+            }
+        }
+        return map;
+    };
+
+    Dictionary<string, string> customerMap = toMap(Model.Customers, "CustomerID", "CompanyName");
+    Dictionary<string, string> employeeMap = toMap(Model.Employees, "EmployeeID", "EmployeeName");
+    Dictionary<string, string> shipperMap = toMap(Model.Shippers, "ShipperID", "CompanyName");
+
+    // 値・表示ともに文字列で扱う（DataTable 側は型付きなのでコントローラで変換する）
+    Func<DataRow, string, string> cell = (dr, col) =>
+    {
+        object v = dr[col];
+        if (v == null || v == DBNull.Value) { return ""; }
+        if (v is DateTime) { return ((DateTime)v).ToString("yyyy/MM/dd"); }
+        return Convert.ToString(v);
+    };
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>Orders 画面Ｂ（条件検索・ページング・バッチ更新）</h4>
+
+<form id="formB" method="post" action="@Url.Action("Search", "OrdersB")">
+    @Html.AntiForgeryToken()
+
+    @* ---------------- 検索条件 ---------------- *@
+    <div class="row mb-2">
+        <div class="col-3">
+            <label>得意先（Customers）</label>
+            <select class="form-control form-control-sm" name="CustomerID">
+                <option value="">（すべて）</option>
+                @if (Model.Customers != null)
+                {
+                    foreach (DataRow r in Model.Customers.Rows)
+                    {
+                        string id = Convert.ToString(r["CustomerID"]).Trim();
+                        <option value="@id" selected="@(Model.CustomerID == id)">@r["CompanyName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>担当者（Employees）</label>
+            <select class="form-control form-control-sm" name="EmployeeID">
+                <option value="">（すべて）</option>
+                @if (Model.Employees != null)
+                {
+                    foreach (DataRow r in Model.Employees.Rows)
+                    {
+                        string id = Convert.ToString(r["EmployeeID"]);
+                        <option value="@id" selected="@(Model.EmployeeID == id)">@r["EmployeeName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>配送業者（Shippers）</label>
+            <select class="form-control form-control-sm" name="ShipVia">
+                <option value="">（すべて）</option>
+                @if (Model.Shippers != null)
+                {
+                    foreach (DataRow r in Model.Shippers.Rows)
+                    {
+                        string id = Convert.ToString(r["ShipperID"]);
+                        <option value="@id" selected="@(Model.ShipVia == id)">@r["CompanyName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>出荷先国（前方一致）</label>
+            <input class="form-control form-control-sm" name="ShipCountry" value="@Model.ShipCountry" />
+        </div>
+    </div>
+
+    @* ページ番号は毎回持ち回る（ページ移動は formaction 側で上書きする） *@
+    <input type="hidden" name="PageIndex" value="@Model.PageIndex" />
+    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+
+    @* ---------------- ページャ ---------------- *@
+    <div class="mb-2">
+        <span>
+            全 @Model.TotalCount 件／@Model.PageIndex / @Math.Max(Model.TotalPages, 1) ページ
+            （@Model.PageSize 件ずつ）
+        </span>
+        @if (Model.IsEditing)
+        {
+            <span class="text-danger">　※ 編集中のためページングは停止しています（処理対象は当該結果セットに限定）。</span>
+        }
+    </div>
+
+    @* ［行追加］はグリッド外のボタン（空行＝RowState:Added を足す） *@
+    <button type="submit" class="btn btn-success btn-sm mb-2"
+            formaction="@Url.Action("AddRow", "OrdersB")">行追加</button>
+
+    @* 共通仕様：一覧は table タグを自前で生成し、tr タグをループで実装する *@
+    <div style="overflow-x: auto;">
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>OrderID</th>
+                <th>得意先</th>
+                <th>担当者</th>
+                <th>OrderDate</th>
+                <th>RequiredDate</th>
+                <th>ShippedDate</th>
+                <th>配送業者</th>
+                <th>Freight</th>
+                <th>ShipName</th>
+                <th>ShipAddress</th>
+                <th>ShipCity</th>
+                <th>ShipRegion</th>
+                <th>ShipPostalCode</th>
+                <th>ShipCountry</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Orders != null)
+            {
+                @* ★ ここはコード文脈なので for に @ を付けない（付けると Razor パースエラー） *@
+                for (int i = 0; i < Model.Orders.Rows.Count; i++)
+                {
+                    DataRow dr = Model.Orders.Rows[i];
+
+                    @* ★ Deleted 行は描画しない（DefaultView から外れる） *@
+                    if (dr.RowState == DataRowState.Deleted) { continue; }
+
+                    int idx = i;   // ★ 表示連番ではなく DataTable の行インデックスを持ち回る
+                    string id = (dr["OrderID"] == DBNull.Value) ? "(採番)" : dr["OrderID"].ToString();
+                    string customerId = cell(dr, "CustomerID").Trim();
+                    string employeeId = cell(dr, "EmployeeID");
+                    string shipVia = cell(dr, "ShipVia");
+
+                    <tr>
+                        @* ★ idx は Deleted を飛ばすので 0 起点の連番にならない。
+                             Rows.Index が無いとコレクションのモデルバインドが空になり、編集が静かに捨てられる。 *@
+                        <input type="hidden" name="Rows.Index" value="@idx" />
+                        <td>
+                            @id
+                            <input type="hidden" name="Rows[@idx].RowIndex" value="@idx" />
+                        </td>
+                        @* マスタ・テーブル関連項目は DDL 化する（表示は CompanyName 等） *@
+                        <td>
+                            <select class="form-control form-control-sm" name="Rows[@idx].CustomerID">
+                                <option value=""></option>
+                                @foreach (KeyValuePair<string, string> kv in customerMap)
+                                {
+                                    <option value="@kv.Key" selected="@(customerId == kv.Key)">@kv.Value</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-control form-control-sm" name="Rows[@idx].EmployeeID">
+                                <option value=""></option>
+                                @foreach (KeyValuePair<string, string> kv in employeeMap)
+                                {
+                                    <option value="@kv.Key" selected="@(employeeId == kv.Key)">@kv.Value</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].OrderDate" value="@cell(dr, "OrderDate")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].RequiredDate" value="@cell(dr, "RequiredDate")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShippedDate" value="@cell(dr, "ShippedDate")" /></td>
+                        <td>
+                            <select class="form-control form-control-sm" name="Rows[@idx].ShipVia">
+                                <option value=""></option>
+                                @foreach (KeyValuePair<string, string> kv in shipperMap)
+                                {
+                                    <option value="@kv.Key" selected="@(shipVia == kv.Key)">@kv.Value</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].Freight" value="@cell(dr, "Freight")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipName" value="@cell(dr, "ShipName")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipAddress" value="@cell(dr, "ShipAddress")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipCity" value="@cell(dr, "ShipCity")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipRegion" value="@cell(dr, "ShipRegion")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipPostalCode" value="@cell(dr, "ShipPostalCode")" /></td>
+                        <td><input class="form-control form-control-sm" name="Rows[@idx].ShipCountry" value="@cell(dr, "ShipCountry")" /></td>
+                        <td style="white-space: nowrap;">
+                            <button type="submit" class="btn btn-primary btn-sm"
+                                    formaction="@Url.Action("UpdateRow", "OrdersB", new { rowIndex = idx })">更新</button>
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    formaction="@Url.Action("DeleteRow", "OrdersB", new { rowIndex = idx })">削除</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    </div>
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。★ form="formB" が無いと押しても無反応。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formB" id="btnMain1" class="btn btn-primary"
+            formaction="@Url.Action("Search", "OrdersB")">検索</button>
+    <button type="submit" form="formB" id="btnMain2" class="btn btn-warning"
+            formaction="@Url.Action("BatchUpdate", "OrdersB")"
+            onclick="return window.confirm('バッチ更新します。よろしいですか？');">バッチ更新</button>
+    <button type="submit" form="formB" id="btnMain3" class="btn btn-secondary"
+            formaction="@Url.Action("Page", "OrdersB", new { targetPage = Math.Max(Model.PageIndex - 1, 1) })"
+            @(Model.IsEditing || Model.PageIndex <= 1 ? "disabled" : "")>前ページ</button>
+    <button type="submit" form="formB" id="btnMain4" class="btn btn-secondary"
+            formaction="@Url.Action("Page", "OrdersB", new { targetPage = Model.PageIndex + 1 })"
+            @(Model.IsEditing || Model.PageIndex >= Model.TotalPages ? "disabled" : "")>次ページ</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary"
+            onclick="location.href='@Url.Action("Index", "OrdersA")';">戻る</button>
+}
+
+@* ダイアログは JavaScript を使用する（共通仕様）。
+   YES/NO 確認ダイアログ＝window.confirm（［バッチ更新］の onclick）／通知＝window.alert *@
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Html.Raw(Json.Encode(Model.Message)));</text>
+        }
+    </script>
+}

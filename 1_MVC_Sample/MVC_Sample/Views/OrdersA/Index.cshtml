@@ -1,0 +1,58 @@
+﻿@*
+    //**********************************************************************************
+    //* トランザクション・テーブル（Orders）保守：画面Ａ
+    //**********************************************************************************
+    //* 画面名          ：OrdersA/Index
+    //* 画面日本語名    ：Orders 画面Ａ（件数確認・画面遷移）
+    //*
+    //* 作成日時        ：2026/08/28
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/08/28  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using MVC_Sample.Models.ViewModels
+@model OrdersViewModel
+
+@{
+    ViewBag.Title = "Orders 画面Ａ";
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>Orders 画面Ａ（件数確認）</h4>
+<p class="text-muted">
+    ［件数確認］で Orders のデータ件数を共通Dao 経由で取得し、OK メッセージ ダイアログで表示します。<br />
+    ［一覧へ］で画面Ｂ（条件検索・ページング・バッチ更新）に遷移します。
+</p>
+
+<form id="formA" method="post" action="@Url.Action("SelectCount", "OrdersA")">
+    @Html.AntiForgeryToken()
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。使わないボタンは disabled にする。
+   ★ @section は <form> の外に描画されるので form="formA" で明示的に紐付ける。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formA" id="btnMain1" class="btn btn-primary"
+            formaction="@Url.Action("SelectCount", "OrdersA")">件数確認</button>
+    <button type="button" id="btnMain2" class="btn btn-info"
+            onclick="location.href='@Url.Action("Index", "OrdersB")';">一覧へ</button>
+    <button type="button" id="btnMain3" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain4" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary" disabled>－</button>
+}
+
+@* ダイアログは JavaScript を使用する（共通仕様）。OK メッセージ ダイアログ＝window.alert *@
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Html.Raw(Json.Encode(Model.Message)));</text>
+        }
+    </script>
+}

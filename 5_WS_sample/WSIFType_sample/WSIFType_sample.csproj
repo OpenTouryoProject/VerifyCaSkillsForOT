@@ -70,7 +70,9 @@
     <Compile Include="TestReturnValue.cs" />
   
     <Compile Include="SuppliersParameterValue.cs" />
-    <Compile Include="SuppliersReturnValue.cs" /></ItemGroup>
+    <Compile Include="SuppliersReturnValue.cs" />
+    <Compile Include="OrdersParameterValue.cs" />
+    <Compile Include="OrdersReturnValue.cs" /></ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

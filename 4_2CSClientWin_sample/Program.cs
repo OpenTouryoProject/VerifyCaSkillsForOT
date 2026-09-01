@@ -96,6 +96,10 @@ namespace _2CSClientWin_sample
                 {
                     Application.Run(new _2CSClientWin_sample.Suppliers.SuppliersScreenA());
                 }
+                else if (selector.Selected == _2CSClientWin_sample.Suppliers.ScreenSelector.SelectedScreen.OrdersMaintenance)
+                {
+                    Application.Run(new _2CSClientWin_sample.Orders.OrdersScreenA());
+                }
                 else
                 {
                     Application.Run(new Form1());

@@ -21,4 +21,7 @@
          ServiceInterface（サーバ側）の同じ定義で解決される。 -->
   <Transmission id="SuppliersInProcess" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
   <Transmission id="SuppliersWCFTcp" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
-  <Transmission id="SuppliersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" /></TMD>
+  <Transmission id="SuppliersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="OrdersInProcess" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="OrdersWCFTcp" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="OrdersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" /></TMD>

@@ -14,6 +14,7 @@
         <li>マスタ保守
             <ul>
                 <li><a href="<%= this.ResolveUrl("~/Aspx/Suppliers/SuppliersA.aspx") %>">Suppliers（件数確認・一覧＆バッチ更新）</a></li>
+                <li><a href="<%= this.ResolveUrl("~/Aspx/Orders/OrdersA.aspx") %>">Orders（条件検索・ページング・バッチ更新）</a></li>
             </ul>
         </li>
     </ul>

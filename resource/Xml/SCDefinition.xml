@@ -23,6 +23,22 @@
 		<Transition value="~/Aspx/start/menu.aspx" label="menu"/>
 	</Screen>
 	<Screen value="~/Aspx/start/menu.aspx" directLink="allow">
+		<Transition value="~/Aspx/Suppliers/SuppliersA.aspx" label="SuppliersA"/>
+		<Transition value="~/Aspx/Orders/OrdersA.aspx" label="OrdersA"/>
+	</Screen>
+	<!-- マスタ・テーブル（Suppliers）保守 -->
+	<Screen value="~/Aspx/Suppliers/SuppliersA.aspx" directLink="allow">
+		<Transition value="~/Aspx/Suppliers/SuppliersB.aspx" label="SuppliersB"/>
+	</Screen>
+	<Screen value="~/Aspx/Suppliers/SuppliersB.aspx" directLink="allow">
+		<Transition value="~/Aspx/Suppliers/SuppliersA.aspx" label="SuppliersA"/>
+	</Screen>
+	<!-- トランザクション・テーブル（Orders）保守 -->
+	<Screen value="~/Aspx/Orders/OrdersA.aspx" directLink="allow">
+		<Transition value="~/Aspx/Orders/OrdersB.aspx" label="OrdersB"/>
+	</Screen>
+	<Screen value="~/Aspx/Orders/OrdersB.aspx" directLink="allow">
+		<Transition value="~/Aspx/Orders/OrdersA.aspx" label="OrdersA"/>
 	</Screen>
 	<Screen value="~/Aspx/testScreenCtrl/WebForm0.aspx" directLink="allow">
 		<Transition value="~/Aspx/testScreenCtrl/WebForm1.aspx" label="0→1"/>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT>
+  -- OrderSearch : 条件検索＋ページング（ROW_NUMBER + CTE ＝ SQL 制御方式）
+  -- 全件取得してメモリでページングしない。総件数は OrderSearchCount.xml で別途取得する。
+  WITH OrderPage AS (
+    SELECT
+      ROW_NUMBER() OVER (ORDER BY [OrderID] ASC) AS RNUM,
+      [OrderID],
+      [CustomerID],
+      [EmployeeID],
+      [OrderDate],
+      [RequiredDate],
+      [ShippedDate],
+      [ShipVia],
+      [Freight],
+      [ShipName],
+      [ShipAddress],
+      [ShipCity],
+      [ShipRegion],
+      [ShipPostalCode],
+      [ShipCountry]
+    FROM
+      [Orders]
+    <WHERE>
+      WHERE
+        <IF>AND [CustomerID] = @CustomerID</IF>
+        <IF>AND [EmployeeID] = @EmployeeID</IF>
+        <IF>AND [ShipVia] = @ShipVia</IF>
+        <IF>AND [ShipCountry] LIKE @ShipCountry</IF>
+    </WHERE>
+  )
+  SELECT
+    [OrderID],
+    [CustomerID],
+    [EmployeeID],
+    [OrderDate],
+    [RequiredDate],
+    [ShippedDate],
+    [ShipVia],
+    [Freight],
+    [ShipName],
+    [ShipAddress],
+    [ShipCity],
+    [ShipRegion],
+    [ShipPostalCode],
+    [ShipCountry]
+  FROM
+    OrderPage
+  WHERE
+    RNUM BETWEEN @FromRow AND @ToRow
+  ORDER BY
+    RNUM
+</ROOT>
