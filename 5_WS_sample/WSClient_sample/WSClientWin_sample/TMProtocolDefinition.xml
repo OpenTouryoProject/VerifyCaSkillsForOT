@@ -49,6 +49,10 @@
     <Transmission id="OrdersInProcess" protocol="1"/>
     <Transmission id="OrdersWCFTcp" protocol="4" url="net.tcp://localhost:7777/WCFService/WCFTCPSvcForFx/" />
     <Transmission id="OrdersWebAPI" protocol="5" url="https://localhost/WebAPIControllerForFx" />    
+    <!-- 受注管理（Ord）：条件検索一覧→詳細・更新 -->
+    <Transmission id="OrdInProcess" protocol="1"/>
+    <Transmission id="OrdWCFTcp" protocol="4" url="net.tcp://localhost:7777/WCFService/WCFTCPSvcForFx/" />
+    <Transmission id="OrdWebAPI" protocol="5" url="https://localhost/WebAPIControllerForFx" />
     <!-- サービス（マスタ データを活用）-->
     <!--Transmission id="_testWebService" protocol="2" url_ref="url_a" timeout="60" prop_ref="prop_a" /-->
     <!--Transmission id="_testWebService2" protocol="3" url_ref="url_b" /-->

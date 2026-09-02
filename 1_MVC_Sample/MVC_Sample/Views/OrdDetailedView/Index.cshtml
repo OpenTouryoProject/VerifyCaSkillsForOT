@@ -1,0 +1,190 @@
+﻿@*
+    //**********************************************************************************
+    //* 受注管理（Ord）：画面Ｂ＝詳細・更新
+    //**********************************************************************************
+    //* 画面名          ：OrdDetailedView/Index
+    //* 画面日本語名    ：受注 詳細・更新（画面Ｂ）
+    //*
+    //* 作成日時        ：2026/09/02
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/09/02  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using System
+@using System.Data
+@using MVC_Sample.Models.ViewModels
+@model OrdViewModel
+
+@{
+    ViewBag.Title = "受注管理（Ord）：詳細・更新";
+
+    // ［戻る］で画面Ａへ返す検索条件（そのまま再検索させる）
+    object backRoute = new
+    {
+        autoSearch = true,
+        CustomerID = Model.CustomerID,
+        EmployeeID = Model.EmployeeID,
+        ShipVia = Model.ShipVia,
+        ShipCountry = Model.ShipCountry,
+        PageIndex = Model.PageIndex,
+        PageSize = Model.PageSize
+    };
+
+    bool canInsert = Model.IsNew && !Model.CudDone;
+    bool canUpdate = !Model.IsNew && !Model.CudDone;
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>受注管理（Ord）：詳細・更新（画面Ｂ）</h4>
+<p class="text-muted">
+    初期処理でマスタ・テーブルを取得して入力用 ＤＤＬ を生成します。<br />
+    画面Ａの［詳細］から来たときは自動生成Dao の参照（Ｒ）で表示し［更新］［削除］を、
+    ［追加］から来たときは［追加］を活性にします。
+</p>
+
+<form id="formOrdDetail" method="post" action="@Url.Action("Insert", "OrdDetailedView")">
+    @Html.AntiForgeryToken()
+
+    @* 画面の状態と、画面Ａへ返す検索条件を持ち回る *@
+    <input type="hidden" name="OrderID" value="@Model.OrderID" />
+    <input type="hidden" name="IsNew" value="@Model.IsNew.ToString().ToLower()" />
+    <input type="hidden" name="CudDone" value="@Model.CudDone.ToString().ToLower()" />
+    <input type="hidden" name="CustomerID" value="@Model.CustomerID" />
+    <input type="hidden" name="EmployeeID" value="@Model.EmployeeID" />
+    <input type="hidden" name="ShipVia" value="@Model.ShipVia" />
+    <input type="hidden" name="ShipCountry" value="@Model.ShipCountry" />
+    <input type="hidden" name="PageIndex" value="@Model.PageIndex" />
+    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+
+    <table class="table table-sm">
+        <tr>
+            <th style="width: 260px;">OrderID</th>
+            <td><input class="form-control form-control-sm" value="@Model.OrderID" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <th>得意先（Customers）</th>
+            <td>
+                <select class="form-control form-control-sm" name="DetailCustomerID">
+                    <option value="">（未設定）</option>
+                    @if (Model.Customers != null)
+                    {
+                        foreach (DataRow r in Model.Customers.Rows)
+                        {
+                            string id = Convert.ToString(r["CustomerID"]).Trim();
+                            <option value="@id" selected="@(Model.DetailCustomerID == id)">@r["CompanyName"]</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>担当者（Employees）</th>
+            <td>
+                <select class="form-control form-control-sm" name="DetailEmployeeID">
+                    <option value="">（未設定）</option>
+                    @if (Model.Employees != null)
+                    {
+                        foreach (DataRow r in Model.Employees.Rows)
+                        {
+                            string id = Convert.ToString(r["EmployeeID"]);
+                            <option value="@id" selected="@(Model.DetailEmployeeID == id)">@r["EmployeeName"]</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>受注日（OrderDate）</th>
+            <td><input class="form-control form-control-sm" name="OrderDate" value="@Model.OrderDate" /></td>
+        </tr>
+        <tr>
+            <th>要求日（RequiredDate）</th>
+            <td><input class="form-control form-control-sm" name="RequiredDate" value="@Model.RequiredDate" /></td>
+        </tr>
+        <tr>
+            <th>出荷日（ShippedDate）</th>
+            <td><input class="form-control form-control-sm" name="ShippedDate" value="@Model.ShippedDate" /></td>
+        </tr>
+        <tr>
+            <th>配送業者（Shippers）</th>
+            <td>
+                <select class="form-control form-control-sm" name="DetailShipVia">
+                    <option value="">（未設定）</option>
+                    @if (Model.Shippers != null)
+                    {
+                        foreach (DataRow r in Model.Shippers.Rows)
+                        {
+                            string id = Convert.ToString(r["ShipperID"]);
+                            <option value="@id" selected="@(Model.DetailShipVia == id)">@r["CompanyName"]</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>運賃（Freight）</th>
+            <td><input class="form-control form-control-sm" name="Freight" value="@Model.Freight" /></td>
+        </tr>
+        <tr>
+            <th>出荷先名（ShipName）</th>
+            <td><input class="form-control form-control-sm" name="ShipName" value="@Model.ShipName" /></td>
+        </tr>
+        <tr>
+            <th>出荷先住所（ShipAddress）</th>
+            <td><input class="form-control form-control-sm" name="ShipAddress" value="@Model.ShipAddress" /></td>
+        </tr>
+        <tr>
+            <th>出荷先市（ShipCity）</th>
+            <td><input class="form-control form-control-sm" name="ShipCity" value="@Model.ShipCity" /></td>
+        </tr>
+        <tr>
+            <th>出荷先地域（ShipRegion）</th>
+            <td><input class="form-control form-control-sm" name="ShipRegion" value="@Model.ShipRegion" /></td>
+        </tr>
+        <tr>
+            <th>出荷先郵便番号（ShipPostalCode）</th>
+            <td><input class="form-control form-control-sm" name="ShipPostalCode" value="@Model.ShipPostalCode" /></td>
+        </tr>
+        <tr>
+            <th>出荷先国（ShipCountry）</th>
+            <td><input class="form-control form-control-sm" name="DetailShipCountry" value="@Model.DetailShipCountry" /></td>
+        </tr>
+    </table>
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。★ form="formOrdDetail" が無いと押しても無反応。
+   仕様：詳細から遷移＝ＵＤ活性、追加から遷移＝Ｃ活性。不要なボタンは disabled。
+   ダイアログは JavaScript（YES/NO 確認＝window.confirm）。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formOrdDetail" id="btnMain1" class="btn btn-success"
+            formaction="@Url.Action("Insert", "OrdDetailedView")"
+            onclick="return window.confirm('追加します。よろしいですか？');"
+            @(canInsert ? "" : "disabled")>追加</button>
+    <button type="submit" form="formOrdDetail" id="btnMain2" class="btn btn-primary"
+            formaction="@Url.Action("Update", "OrdDetailedView")"
+            onclick="return window.confirm('更新します。よろしいですか？');"
+            @(canUpdate ? "" : "disabled")>更新</button>
+    <button type="submit" form="formOrdDetail" id="btnMain3" class="btn btn-danger"
+            formaction="@Url.Action("Delete", "OrdDetailedView")"
+            onclick="return window.confirm('削除します。よろしいですか？');"
+            @(canUpdate ? "" : "disabled")>削除</button>
+    <button type="button" id="btnMain4" class="btn btn-secondary" disabled>－</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary"
+            onclick="location.href='@Url.Action("Index", "OrdListSearch", backRoute)';">戻る</button>
+}
+
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Html.Raw(Json.Encode(Model.Message)));</text>
+        }
+    </script>
+}

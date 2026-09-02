@@ -36,7 +36,9 @@ namespace WSClientWin_sample.Suppliers
             /// <summary>マスタ保守（Suppliers）画面Ａ</summary>
             SuppliersMaintenance,
             /// <summary>トランザクション保守（Orders）画面Ａ</summary>
-            OrdersMaintenance
+            OrdersMaintenance,
+            /// <summary>受注管理（Ord）条件検索一覧（画面Ａ）</summary>
+            OrdManagement
         }
 
         /// <summary>選択結果</summary>
@@ -47,7 +49,7 @@ namespace WSClientWin_sample.Suppliers
         {
             this.Text = "画面の選択";
             this.Width = 420;
-            this.Height = 260;
+            this.Height = 300;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -94,9 +96,20 @@ namespace WSClientWin_sample.Suppliers
             };
             this.Controls.Add(btnOrders);
 
+            Button btnOrd = new Button();
+            btnOrd.Text = "受注管理（Ord：条件検索一覧→詳細・更新）";
+            btnOrd.Location = new Point(16, 168);
+            btnOrd.Size = new Size(380, 32);
+            btnOrd.Click += delegate
+            {
+                this.Selected = ScreenSelector.SelectedScreen.OrdManagement;
+                this.DialogResult = DialogResult.OK;
+            };
+            this.Controls.Add(btnOrd);
+
             Button btnCancel = new Button();
             btnCancel.Text = "終了";
-            btnCancel.Location = new Point(16, 168);
+            btnCancel.Location = new Point(16, 208);
             btnCancel.Size = new Size(380, 28);
             btnCancel.DialogResult = DialogResult.Cancel;
             this.Controls.Add(btnCancel);

@@ -103,6 +103,10 @@ namespace WSClientWin_sample
                 {
                     Application.Run(new WSClientWin_sample.Orders.OrdersScreenA());
                 }
+                else if (selector.Selected == WSClientWin_sample.Suppliers.ScreenSelector.SelectedScreen.OrdManagement)
+                {
+                    Application.Run(new WSClientWin_sample.Ord.OrdListSearch());
+                }
                 else
                 {
                     Application.Run(new Form1());

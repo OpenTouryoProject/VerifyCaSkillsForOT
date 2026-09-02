@@ -285,7 +285,12 @@
     <Compile Include="Models\ViewModels\OrdersViewModel.cs" />
     <Compile Include="Controllers\OrdersAController.cs" />
     <Compile Include="Controllers\OrdersBController.cs" />
-  </ItemGroup>
+  
+    <Compile Include="Logic\Common\OrdParameterValue.cs" />
+    <Compile Include="Logic\Common\OrdReturnValue.cs" />
+    <Compile Include="Models\ViewModels\OrdViewModel.cs" />
+    <Compile Include="Controllers\OrdListSearchController.cs" />
+    <Compile Include="Controllers\OrdDetailedViewController.cs" /></ItemGroup>
   <ItemGroup>
     <Content Include="Content\app\Site.css" />
     <Content Include="Content\bootstrap-grid.css" />
@@ -359,7 +364,9 @@
     <Content Include="Views\SuppliersB\Index.cshtml" />
     <Content Include="Views\OrdersA\Index.cshtml" />
     <Content Include="Views\OrdersB\Index.cshtml" />
-  </ItemGroup>
+  
+    <Content Include="Views\OrdListSearch\Index.cshtml" />
+    <Content Include="Views\OrdDetailedView\Index.cshtml" /></ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
   </ItemGroup>

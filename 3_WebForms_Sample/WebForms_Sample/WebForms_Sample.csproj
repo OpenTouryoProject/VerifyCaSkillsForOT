@@ -334,7 +334,9 @@
     <Content Include="Aspx\Suppliers\SuppliersA.aspx" />
     <Content Include="Aspx\Suppliers\SuppliersB.aspx" />
     <Content Include="Aspx\Orders\OrdersA.aspx" />
-    <Content Include="Aspx\Orders\OrdersB.aspx" /></ItemGroup>
+    <Content Include="Aspx\Orders\OrdersB.aspx" />
+    <Content Include="Aspx\Ord\OrdListSearch.aspx" />
+    <Content Include="Aspx\Ord\OrdDetailedView.aspx" /></ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
@@ -422,7 +424,13 @@
     <Compile Include="Aspx\Orders\OrdersA.aspx.cs" />
     <Compile Include="Aspx\Orders\OrdersA.aspx.designer.cs" />
     <Compile Include="Aspx\Orders\OrdersB.aspx.cs" />
-    <Compile Include="Aspx\Orders\OrdersB.aspx.designer.cs" /></ItemGroup>
+    <Compile Include="Aspx\Orders\OrdersB.aspx.designer.cs" />
+    <Compile Include="AppCode\Common\OrdParameterValue.cs" />
+    <Compile Include="AppCode\Common\OrdReturnValue.cs" />
+    <Compile Include="Aspx\Ord\OrdListSearch.aspx.cs" />
+    <Compile Include="Aspx\Ord\OrdListSearch.aspx.designer.cs" />
+    <Compile Include="Aspx\Ord\OrdDetailedView.aspx.cs" />
+    <Compile Include="Aspx\Ord\OrdDetailedView.aspx.designer.cs" /></ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
   </ItemGroup>

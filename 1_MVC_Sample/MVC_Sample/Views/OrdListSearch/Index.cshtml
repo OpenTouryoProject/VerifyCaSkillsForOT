@@ -1,0 +1,199 @@
+﻿@*
+    //**********************************************************************************
+    //* 受注管理（Ord）：画面Ａ＝条件検索一覧
+    //**********************************************************************************
+    //* 画面名          ：OrdListSearch/Index
+    //* 画面日本語名    ：受注 条件検索一覧（画面Ａ）
+    //*
+    //* 作成日時        ：2026/09/02
+    //* 作成者          ：生技
+    //* 更新履歴        ：
+    //*
+    //*  日時        更新者            内容
+    //*  ----------  ----------------  -------------------------------------------------
+    //*  2026/09/02  生技              新規作成
+    //**********************************************************************************
+*@
+
+@using System
+@using System.Data
+@using MVC_Sample.Models.ViewModels
+@model OrdViewModel
+
+@{
+    ViewBag.Title = "受注管理（Ord）：条件検索一覧";
+
+    // 画面Ｂへ渡す（＝戻ってくるときに返してもらう）検索条件
+    Func<string, object> detailRoute = orderId => new
+    {
+        orderId = orderId,
+        CustomerID = Model.CustomerID,
+        EmployeeID = Model.EmployeeID,
+        ShipVia = Model.ShipVia,
+        ShipCountry = Model.ShipCountry,
+        PageIndex = Model.PageIndex,
+        PageSize = Model.PageSize
+    };
+
+    Func<DataRow, string, string> cell = (dr, col) =>
+    {
+        if (!dr.Table.Columns.Contains(col)) { return ""; }
+        object v = dr[col];
+        if (v == null || v == DBNull.Value) { return ""; }
+        if (v is DateTime) { return ((DateTime)v).ToString("yyyy/MM/dd"); }
+        return Convert.ToString(v);
+    };
+}
+
+@section HeaderScriptsSection{
+}
+
+<h4>受注管理（Ord）：条件検索一覧（画面Ａ）</h4>
+<p class="text-muted">
+    ［検索］で受注（Orders）を条件検索します（Ｄ層は共通Dao。表示値はＳＱＬでマスタと JOIN 済み）。<br />
+    ［追加］で画面Ｂを「追加」モードで、行の［詳細］で画面Ｂを「詳細（更新・削除）」モードで開きます。
+</p>
+
+<form id="formOrdList" method="post" action="@Url.Action("Search", "OrdListSearch")">
+    @Html.AntiForgeryToken()
+
+    @* ---------------- 検索条件（マスタ・テーブル関連項目は ＤＤＬ 化する） ---------------- *@
+    <div class="row mb-2">
+        <div class="col-3">
+            <label>得意先（Customers）</label>
+            <select class="form-control form-control-sm" name="CustomerID">
+                <option value="">（すべて）</option>
+                @if (Model.Customers != null)
+                {
+                    foreach (DataRow r in Model.Customers.Rows)
+                    {
+                        string id = Convert.ToString(r["CustomerID"]).Trim();
+                        <option value="@id" selected="@(Model.CustomerID == id)">@r["CompanyName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>担当者（Employees）</label>
+            <select class="form-control form-control-sm" name="EmployeeID">
+                <option value="">（すべて）</option>
+                @if (Model.Employees != null)
+                {
+                    foreach (DataRow r in Model.Employees.Rows)
+                    {
+                        string id = Convert.ToString(r["EmployeeID"]);
+                        <option value="@id" selected="@(Model.EmployeeID == id)">@r["EmployeeName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>配送業者（Shippers）</label>
+            <select class="form-control form-control-sm" name="ShipVia">
+                <option value="">（すべて）</option>
+                @if (Model.Shippers != null)
+                {
+                    foreach (DataRow r in Model.Shippers.Rows)
+                    {
+                        string id = Convert.ToString(r["ShipperID"]);
+                        <option value="@id" selected="@(Model.ShipVia == id)">@r["CompanyName"]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-3">
+            <label>出荷先国（前方一致）</label>
+            <input class="form-control form-control-sm" name="ShipCountry" value="@Model.ShipCountry" />
+        </div>
+    </div>
+
+    @* ページ番号は毎回持ち回る（ページ移動は formaction 側で上書きする） *@
+    <input type="hidden" name="PageIndex" value="@Model.PageIndex" />
+    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+
+    <div class="mb-2">
+        <span>
+            全 @Model.TotalCount 件／@Model.PageIndex / @Math.Max(Model.TotalPages, 1) ページ
+            （@Model.PageSize 件ずつ）
+        </span>
+    </div>
+
+    @* 共通仕様：一覧は table タグを自前で生成し、tr タグをループで実装する *@
+    <div style="overflow-x: auto;">
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>OrderID</th>
+                <th>得意先</th>
+                <th>担当者</th>
+                <th>受注日</th>
+                <th>要求日</th>
+                <th>出荷日</th>
+                <th>配送業者</th>
+                <th>運賃</th>
+                <th>出荷先</th>
+                <th>出荷先市</th>
+                <th>出荷先国</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Orders != null)
+            {
+                @* ★ ここはコード文脈なので foreach に @ を付けない（付けると Razor パースエラー） *@
+                foreach (DataRow dr in Model.Orders.Rows)
+                {
+                    string orderId = cell(dr, "OrderID");
+
+                    <tr>
+                        <td>@orderId</td>
+                        <td>@cell(dr, "CustomerName")</td>
+                        <td>@cell(dr, "EmployeeName")</td>
+                        <td>@cell(dr, "OrderDate")</td>
+                        <td>@cell(dr, "RequiredDate")</td>
+                        <td>@cell(dr, "ShippedDate")</td>
+                        <td>@cell(dr, "ShipperName")</td>
+                        <td>@cell(dr, "Freight")</td>
+                        <td>@cell(dr, "ShipName")</td>
+                        <td>@cell(dr, "ShipCity")</td>
+                        <td>@cell(dr, "ShipCountry")</td>
+                        <td style="white-space: nowrap;">
+                            @* 詳細＝画面Ｂへ遷移（ＵＤモード）。検索条件も渡して戻れるようにする。 *@
+                            <a class="btn btn-primary btn-sm"
+                               href="@Url.Action("Index", "OrdDetailedView", detailRoute(orderId))">詳細</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    </div>
+</form>
+
+@* 共通仕様：メイン ボタンはフッタ部に5つ。
+   ★ @section は <form> の外に描画されるので form="formOrdList" で明示的に紐付ける。
+   ★ 不要なボタン（先頭／最終ページのページ移動）は disabled にする。 *@
+@section FooterButtonsSection{
+    <button type="submit" form="formOrdList" id="btnMain1" class="btn btn-primary"
+            formaction="@Url.Action("Search", "OrdListSearch")">検索</button>
+    <button type="button" id="btnMain2" class="btn btn-success"
+            onclick="location.href='@Url.Action("Index", "OrdDetailedView", detailRoute(""))';">追加</button>
+    <button type="submit" form="formOrdList" id="btnMain3" class="btn btn-secondary"
+            formaction="@Url.Action("Page", "OrdListSearch", new { targetPage = Math.Max(Model.PageIndex - 1, 1) })"
+            @(Model.PageIndex <= 1 ? "disabled" : "")>前ページ</button>
+    <button type="submit" form="formOrdList" id="btnMain4" class="btn btn-secondary"
+            formaction="@Url.Action("Page", "OrdListSearch", new { targetPage = Model.PageIndex + 1 })"
+            @(Model.PageIndex >= Model.TotalPages ? "disabled" : "")>次ページ</button>
+    <button type="button" id="btnMain5" class="btn btn-secondary"
+            onclick="location.href='@Url.Action("Index", "Home")';">メニューへ</button>
+}
+
+@* ダイアログは JavaScript を使用する（共通仕様）。通知＝window.alert *@
+@section FooterScriptsSection{
+    <script type="text/javascript">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <text>window.alert(@Html.Raw(Json.Encode(Model.Message)));</text>
+        }
+    </script>
+}

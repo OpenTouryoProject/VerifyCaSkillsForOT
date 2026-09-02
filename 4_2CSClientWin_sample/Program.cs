@@ -100,6 +100,10 @@ namespace _2CSClientWin_sample
                 {
                     Application.Run(new _2CSClientWin_sample.Orders.OrdersScreenA());
                 }
+                else if (selector.Selected == _2CSClientWin_sample.Suppliers.ScreenSelector.SelectedScreen.OrdManagement)
+                {
+                    Application.Run(new _2CSClientWin_sample.Ord.OrdListSearch());
+                }
                 else
                 {
                     Application.Run(new Form1());

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT>
+  -- OrdListSearchCount : OrdListSearch.xml と同じ条件での総件数（ページャの総ページ数に使う）
+  -- ★ 件数だけなので JOIN は不要（表示値への変換は一覧側の責務）。
+  SELECT
+    COUNT(*)
+  FROM
+    [Orders] o
+  <WHERE>
+    WHERE
+      <IF>AND o.[CustomerID] = @CustomerID</IF>
+      <IF>AND o.[EmployeeID] = @EmployeeID</IF>
+      <IF>AND o.[ShipVia] = @ShipVia</IF>
+      <IF>AND o.[ShipCountry] LIKE @ShipCountry</IF>
+  </WHERE>
+</ROOT>

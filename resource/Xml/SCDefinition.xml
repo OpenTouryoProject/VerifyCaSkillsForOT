@@ -25,6 +25,7 @@
 	<Screen value="~/Aspx/start/menu.aspx" directLink="allow">
 		<Transition value="~/Aspx/Suppliers/SuppliersA.aspx" label="SuppliersA"/>
 		<Transition value="~/Aspx/Orders/OrdersA.aspx" label="OrdersA"/>
+		<Transition value="~/Aspx/Ord/OrdListSearch.aspx" label="OrdListSearch"/>
 	</Screen>
 	<!-- マスタ・テーブル（Suppliers）保守 -->
 	<Screen value="~/Aspx/Suppliers/SuppliersA.aspx" directLink="allow">
@@ -39,6 +40,14 @@
 	</Screen>
 	<Screen value="~/Aspx/Orders/OrdersB.aspx" directLink="allow">
 		<Transition value="~/Aspx/Orders/OrdersA.aspx" label="OrdersA"/>
+	</Screen>
+	<!-- 受注管理（Ord）：条件検索一覧→詳細・更新 -->
+	<Screen value="~/Aspx/Ord/OrdListSearch.aspx" directLink="allow">
+		<Transition value="~/Aspx/Ord/OrdDetailedView.aspx" label="OrdDetailedView"/>
+		<Transition value="~/Aspx/start/menu.aspx" label="menu"/>
+	</Screen>
+	<Screen value="~/Aspx/Ord/OrdDetailedView.aspx" directLink="allow">
+		<Transition value="~/Aspx/Ord/OrdListSearch.aspx" label="OrdListSearch"/>
 	</Screen>
 	<Screen value="~/Aspx/testScreenCtrl/WebForm0.aspx" directLink="allow">
 		<Transition value="~/Aspx/testScreenCtrl/WebForm1.aspx" label="0→1"/>

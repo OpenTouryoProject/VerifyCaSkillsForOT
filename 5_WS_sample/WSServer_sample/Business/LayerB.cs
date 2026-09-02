@@ -1378,5 +1378,331 @@ namespace WSServer_sample.Business
         #endregion
 
 
+
+        #region 受注管理（Ord）：条件検索一覧・詳細・更新
+
+        #region 条件検索一覧（共通Dao ＋ 動的パラメタライズドクエリ）
+
+        /// <summary>受注（Orders）を条件検索して一覧を取得する（共通Dao ＋ 動的クエリ／ページング付き）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>
+        /// ★ Ｄ層は共通Dao（CmnDao）を使用する（仕様）。
+        /// ★ 仕様：SQL でマスタ・テーブルと JOIN して表示値に変換しておく（OrdListSearch.xml）。
+        /// ★ ページングは SQL 制御方式（ROW_NUMBER + CTE）。全件取得してメモリで切らない。
+        /// ★ 検索条件は「パラメタを設定しない＝その &lt;IF&gt; ブロックごと WHERE から消える」で外す。
+        ///   null を設定すると「IS NULL」になってしまい、条件を外したことにならない。
+        /// </remarks>
+        private void UOC_OrdListSearch(OrdParameterValue parameterValue)
+        {
+            // 戻り値クラスを生成して、事前に戻り値に設定しておく。
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+
+            // --- 総件数（同じ条件で COUNT。ページャの総ページ数に使う） ---
+            CmnDao countDao = new CmnDao(this.GetDam());
+            countDao.SQLFileName = "OrdListSearchCount.xml";
+            LayerB.SetOrdSearchCondition(countDao, parameterValue);
+            returnValue.TotalCount = int.Parse(countDao.ExecSelectScalar().ToString());
+
+            // --- 現在ページ分の明細 ---
+            int pageSize = (parameterValue.PageSize <= 0) ? 20 : parameterValue.PageSize;
+            int pageIndex = (parameterValue.PageIndex <= 0) ? 1 : parameterValue.PageIndex;
+
+            CmnDao cmnDao = new CmnDao(this.GetDam());
+            cmnDao.SQLFileName = "OrdListSearch.xml";
+            LayerB.SetOrdSearchCondition(cmnDao, parameterValue);
+
+            // RNUM の範囲（1 起算）
+            cmnDao.SetParameter("FromRow", ((pageIndex - 1) * pageSize) + 1);
+            cmnDao.SetParameter("ToRow", pageIndex * pageSize);
+
+            DataTable dt = new DataTable("Orders");
+            cmnDao.ExecSelectFill_DT(dt);
+            returnValue.Orders = dt;
+
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        /// <summary>検索条件を動的クエリのパラメタに設定する</summary>
+        /// <param name="cmnDao">共通Dao</param>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>
+        /// ★ 未指定の条件は「設定しない」＝&lt;IF&gt; ごと WHERE から消える。
+        ///   ここで null や空文字を渡すと条件が残ってしまう。
+        /// </remarks>
+        private static void SetOrdSearchCondition(CmnDao cmnDao, OrdParameterValue parameterValue)
+        {
+            if (!string.IsNullOrEmpty(parameterValue.CustomerID))
+            {
+                cmnDao.SetParameter("CustomerID", parameterValue.CustomerID);
+            }
+
+            if (!string.IsNullOrEmpty(parameterValue.EmployeeID))
+            {
+                cmnDao.SetParameter("EmployeeID", int.Parse(parameterValue.EmployeeID));
+            }
+
+            if (!string.IsNullOrEmpty(parameterValue.ShipVia))
+            {
+                cmnDao.SetParameter("ShipVia", int.Parse(parameterValue.ShipVia));
+            }
+
+            if (!string.IsNullOrEmpty(parameterValue.ShipCountry))
+            {
+                // 前方一致（ユーザ入力は必ずパラメタで渡す＝ユーザパラメタにしない）
+                cmnDao.SetParameter("ShipCountry", parameterValue.ShipCountry + "%");
+            }
+        }
+
+        #endregion
+
+        #region ドロップダウン用のマスタ取得（共通Dao）
+
+        /// <summary>ドロップダウン用のマスタを取得する（共通Dao 経由）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>仕様：画面Ｂの初期処理で「マスタ・テーブル値入力用DDL」を生成するために使う。</remarks>
+        private void UOC_OrdMasters(OrdParameterValue parameterValue)
+        {
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+            CmnDao dao = new CmnDao(this.GetDam());
+
+            DataTable customers = new DataTable("Customers");
+            dao.SQLFileName = "CustomerListForDdl.sql";
+            dao.ExecSelectFill_DT(customers);
+            returnValue.Customers = customers;
+
+            DataTable employees = new DataTable("Employees");
+            dao.SQLFileName = "EmployeeListForDdl.sql";
+            dao.ExecSelectFill_DT(employees);
+            returnValue.Employees = employees;
+
+            DataTable shippers = new DataTable("Shippers");
+            dao.SQLFileName = "ShipperListForDdl.sql";
+            dao.ExecSelectFill_DT(shippers);
+            returnValue.Shippers = shippers;
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        #endregion
+
+        #region 詳細表示（自動生成Dao の参照＝Ｒ）
+
+        /// <summary>受注（Orders）を1件参照する（自動生成Dao の S2_Select）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>
+        /// ★ 新規（追加）モードは OrderID を渡さない＝0 件で戻る。
+        ///   ExecSelectFill_DT（内部は DataAdapter.Fill）は 0 件でも列（スキーマ）は作るので、
+        ///   画面Ｂはこの空の DataTable に NewRow() を足して「追加」の入力欄にできる。
+        /// </remarks>
+        private void UOC_OrdDetailedView(OrdParameterValue parameterValue)
+        {
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+            DaoOrders dao = new DaoOrders(this.GetDam());
+            dao.ClearParametersFromHt();
+
+            int orderId = 0;
+            if (!string.IsNullOrEmpty(parameterValue.OrderID))
+            {
+                int.TryParse(parameterValue.OrderID, out orderId);
+            }
+            dao.PK_OrderID = orderId;
+
+            DataTable dt = new DataTable("Orders");
+            dao.S2_Select(dt);
+            returnValue.Order = dt;
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        #endregion
+
+        #region 追加・更新・削除（自動生成Dao の Ｃ・Ｕ・Ｄ）
+
+        /// <summary>受注（Orders）を1件追加する（自動生成Dao の D1_Insert）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>
+        /// ★ OrderID は IDENTITY（自動採番）＝INSERT に含めない。
+        ///   含めると "IDENTITY_INSERT が OFF..." で必ず失敗するため、
+        ///   全列必須の S1_Insert ではなく、設定した列だけを INSERT する D1_Insert を使う。
+        /// </remarks>
+        private void UOC_OrdInsert(OrdParameterValue parameterValue)
+        {
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+            DataRow dr = LayerB.GetOrdSingleRow(parameterValue);
+
+            DaoOrders dao = new DaoOrders(this.GetDam());
+            dao.ClearParametersFromHt();
+
+            dao.CustomerID     = LayerB.OrdCurrent(dr, "CustomerID");
+            dao.EmployeeID     = LayerB.OrdCurrent(dr, "EmployeeID");
+            dao.OrderDate      = LayerB.OrdCurrent(dr, "OrderDate");
+            dao.RequiredDate   = LayerB.OrdCurrent(dr, "RequiredDate");
+            dao.ShippedDate    = LayerB.OrdCurrent(dr, "ShippedDate");
+            dao.ShipVia        = LayerB.OrdCurrent(dr, "ShipVia");
+            dao.Freight        = LayerB.OrdCurrent(dr, "Freight");
+            dao.ShipName       = LayerB.OrdCurrent(dr, "ShipName");
+            dao.ShipAddress    = LayerB.OrdCurrent(dr, "ShipAddress");
+            dao.ShipCity       = LayerB.OrdCurrent(dr, "ShipCity");
+            dao.ShipRegion     = LayerB.OrdCurrent(dr, "ShipRegion");
+            dao.ShipPostalCode = LayerB.OrdCurrent(dr, "ShipPostalCode");
+            dao.ShipCountry    = LayerB.OrdCurrent(dr, "ShipCountry");
+
+            returnValue.InsertCount = dao.D1_Insert();
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        /// <summary>受注（Orders）を1件更新する（自動生成Dao の D3_Update）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>
+        /// 楽観排他：WHERE に「取得時の値（DataRowVersion.Original）」を入れ、
+        /// 更新件数0＝他のユーザが先に更新した、として業務例外にする。
+        /// </remarks>
+        private void UOC_OrdUpdate(OrdParameterValue parameterValue)
+        {
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+            DataRow dr = LayerB.GetOrdSingleRow(parameterValue);
+
+            DaoOrders dao = new DaoOrders(this.GetDam());
+            dao.ClearParametersFromHt();
+
+            // WHERE 用：主キー＋取得時の値（楽観排他）
+            dao.PK_OrderID = dr["OrderID", DataRowVersion.Original];
+            LayerB.SetOrdOriginalToWhere(dao, dr);
+
+            // SET 用：現在値（空欄は DBNull＝NULL に落とす。WHERE 側とは役割が逆）
+            dao.Set_CustomerID_forUPD     = LayerB.OrdCurrent(dr, "CustomerID");
+            dao.Set_EmployeeID_forUPD     = LayerB.OrdCurrent(dr, "EmployeeID");
+            dao.Set_OrderDate_forUPD      = LayerB.OrdCurrent(dr, "OrderDate");
+            dao.Set_RequiredDate_forUPD   = LayerB.OrdCurrent(dr, "RequiredDate");
+            dao.Set_ShippedDate_forUPD    = LayerB.OrdCurrent(dr, "ShippedDate");
+            dao.Set_ShipVia_forUPD        = LayerB.OrdCurrent(dr, "ShipVia");
+            dao.Set_Freight_forUPD        = LayerB.OrdCurrent(dr, "Freight");
+            dao.Set_ShipName_forUPD       = LayerB.OrdCurrent(dr, "ShipName");
+            dao.Set_ShipAddress_forUPD    = LayerB.OrdCurrent(dr, "ShipAddress");
+            dao.Set_ShipCity_forUPD       = LayerB.OrdCurrent(dr, "ShipCity");
+            dao.Set_ShipRegion_forUPD     = LayerB.OrdCurrent(dr, "ShipRegion");
+            dao.Set_ShipPostalCode_forUPD = LayerB.OrdCurrent(dr, "ShipPostalCode");
+            dao.Set_ShipCountry_forUPD    = LayerB.OrdCurrent(dr, "ShipCountry");
+
+            int updated = dao.D3_Update();
+            if (updated == 0)
+            {
+                throw new BusinessApplicationException(
+                    "OrdUpdate", "他のユーザによって更新されています。",
+                    "OrderID = " + dr["OrderID", DataRowVersion.Original]);
+            }
+            returnValue.UpdateCount = updated;
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        /// <summary>受注（Orders）を1件削除する（自動生成Dao の D4_Delete）</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <remarks>楽観排他は更新と同じ（取得時の値を WHERE に入れ、件数0を業務例外にする）。</remarks>
+        private void UOC_OrdDelete(OrdParameterValue parameterValue)
+        {
+            OrdReturnValue returnValue = new OrdReturnValue();
+            this.ReturnValue = returnValue;
+
+            // ↓業務処理-----------------------------------------------------
+            DataRow dr = LayerB.GetOrdSingleRow(parameterValue);
+
+            DaoOrders dao = new DaoOrders(this.GetDam());
+            dao.ClearParametersFromHt();
+
+            dao.PK_OrderID = dr["OrderID", DataRowVersion.Original];
+            LayerB.SetOrdOriginalToWhere(dao, dr);
+
+            int deleted = dao.D4_Delete();
+            if (deleted == 0)
+            {
+                throw new BusinessApplicationException(
+                    "OrdDelete", "他のユーザによって更新されています。",
+                    "OrderID = " + dr["OrderID", DataRowVersion.Original]);
+            }
+            returnValue.DeleteCount = deleted;
+            // ↑業務処理-----------------------------------------------------
+        }
+
+        /// <summary>ＣＵＤの対象（1行だけの DataTable）から DataRow を取り出す</summary>
+        /// <param name="parameterValue">引数クラス</param>
+        /// <returns>対象の DataRow</returns>
+        private static DataRow GetOrdSingleRow(OrdParameterValue parameterValue)
+        {
+            if (parameterValue.Order == null || parameterValue.Order.Rows.Count == 0)
+            {
+                throw new BusinessApplicationException(
+                    "OrdNoTarget", "処理対象のデータがありません。", "");
+            }
+            return parameterValue.Order.Rows[0];
+        }
+
+        /// <summary>楽観排他：取得時の値（Original）を WHERE 用パラメタに設定する</summary>
+        /// <param name="dao">自動生成Dao</param>
+        /// <param name="dr">対象の DataRow</param>
+        /// <remarks>
+        /// Orders は ntext 等の「= で比較できない型」を持たないため、全列を WHERE に入れられる。
+        /// ★ Original が DBNull の列は null に読み替えて渡す（&lt;ELSE&gt; の「IS NULL」を出させる）。
+        ///   DBNull のまま渡すと「= @col（NULL）」になり、決して一致しない。
+        /// </remarks>
+        private static void SetOrdOriginalToWhere(DaoOrders dao, DataRow dr)
+        {
+            dao.CustomerID     = LayerB.OrdWhere(dr, "CustomerID");
+            dao.EmployeeID     = LayerB.OrdWhere(dr, "EmployeeID");
+            dao.OrderDate      = LayerB.OrdWhere(dr, "OrderDate");
+            dao.RequiredDate   = LayerB.OrdWhere(dr, "RequiredDate");
+            dao.ShippedDate    = LayerB.OrdWhere(dr, "ShippedDate");
+            dao.ShipVia        = LayerB.OrdWhere(dr, "ShipVia");
+            dao.Freight        = LayerB.OrdWhere(dr, "Freight");
+            dao.ShipName       = LayerB.OrdWhere(dr, "ShipName");
+            dao.ShipAddress    = LayerB.OrdWhere(dr, "ShipAddress");
+            dao.ShipCity       = LayerB.OrdWhere(dr, "ShipCity");
+            dao.ShipRegion     = LayerB.OrdWhere(dr, "ShipRegion");
+            dao.ShipPostalCode = LayerB.OrdWhere(dr, "ShipPostalCode");
+            dao.ShipCountry    = LayerB.OrdWhere(dr, "ShipCountry");
+        }
+
+        /// <summary>WHERE 用の値（取得時の値。DBNull は null に読み替える）</summary>
+        /// <param name="dr">対象の DataRow</param>
+        /// <param name="columnName">列名</param>
+        /// <returns>パラメタに設定する値</returns>
+        private static object OrdWhere(DataRow dr, string columnName)
+        {
+            if (!dr.Table.Columns.Contains(columnName)) { return null; }
+
+            object value = dr[columnName, DataRowVersion.Original];
+            return (value == DBNull.Value) ? null : value;
+        }
+
+        /// <summary>INSERT / SET 用の値（現在値。空欄は DBNull＝NULL に落とす）</summary>
+        /// <param name="dr">対象の DataRow</param>
+        /// <param name="columnName">列名</param>
+        /// <returns>パラメタに設定する値</returns>
+        /// <remarks>Orders は OrderID 以外すべて NULL 許容なので、空欄は DBNull でよい。</remarks>
+        private static object OrdCurrent(DataRow dr, string columnName)
+        {
+            if (!dr.Table.Columns.Contains(columnName)) { return DBNull.Value; }
+
+            object value = dr[columnName];
+            if (value == DBNull.Value) { return DBNull.Value; }
+            return (value.ToString().Length == 0) ? (object)DBNull.Value : value;
+        }
+
+        #endregion
+
+        #endregion
+
     }
 }

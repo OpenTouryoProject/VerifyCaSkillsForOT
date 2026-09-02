@@ -24,4 +24,8 @@
   <Transmission id="SuppliersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
   <Transmission id="OrdersInProcess" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
   <Transmission id="OrdersWCFTcp" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
-  <Transmission id="OrdersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" /></TMD>
+  <Transmission id="OrdersWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <!-- 受注管理（Ord）：条件検索一覧→詳細・更新 -->
+  <Transmission id="OrdInProcess" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="OrdWCFTcp" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" />
+  <Transmission id="OrdWebAPI" assemblyName="WSServer_sample" className="WSServer_sample.Business.LayerB" /></TMD>

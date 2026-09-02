@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ROOT>
+  -- OrdListSearch : 受注（Orders）の条件検索一覧＋ページング（ROW_NUMBER + CTE ＝ SQL 制御方式）
+  -- ★ 仕様：SQL でマスタ・テーブルと JOIN して表示値に変換しておく。
+  --   Orders.CustomerID / EmployeeID / ShipVia は NULL 許容なので LEFT JOIN にする
+  --   （INNER JOIN にすると、それらが NULL の受注が一覧から消えてしまう）。
+  -- ★ 全件取得してメモリでページングしない。総件数は OrdListSearchCount.xml で別途取得する。
+  WITH OrdPage AS (
+    SELECT
+      ROW_NUMBER() OVER (ORDER BY o.[OrderID] ASC) AS RNUM,
+      o.[OrderID],
+      o.[CustomerID],
+      c.[CompanyName]                      AS [CustomerName],
+      o.[EmployeeID],
+      e.[LastName] + ' ' + e.[FirstName]   AS [EmployeeName],
+      o.[OrderDate],
+      o.[RequiredDate],
+      o.[ShippedDate],
+      o.[ShipVia],
+      s.[CompanyName]                      AS [ShipperName],
+      o.[Freight],
+      o.[ShipName],
+      o.[ShipCity],
+      o.[ShipCountry]
+    FROM
+      [Orders] o
+      LEFT JOIN [Customers] c ON o.[CustomerID] = c.[CustomerID]
+      LEFT JOIN [Employees] e ON o.[EmployeeID] = e.[EmployeeID]
+      LEFT JOIN [Shippers]  s ON o.[ShipVia]    = s.[ShipperID]
+    <WHERE>
+      WHERE
+        <IF>AND o.[CustomerID] = @CustomerID</IF>
+        <IF>AND o.[EmployeeID] = @EmployeeID</IF>
+        <IF>AND o.[ShipVia] = @ShipVia</IF>
+        <IF>AND o.[ShipCountry] LIKE @ShipCountry</IF>
+    </WHERE>
+  )
+  SELECT
+    [OrderID],
+    [CustomerID],
+    [CustomerName],
+    [EmployeeID],
+    [EmployeeName],
+    [OrderDate],
+    [RequiredDate],
+    [ShippedDate],
+    [ShipVia],
+    [ShipperName],
+    [Freight],
+    [ShipName],
+    [ShipCity],
+    [ShipCountry]
+  FROM
+    OrdPage
+  WHERE
+    RNUM BETWEEN @FromRow AND @ToRow
+  ORDER BY
+    RNUM
+</ROOT>
