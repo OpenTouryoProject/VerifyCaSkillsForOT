@@ -78,7 +78,9 @@
     <Compile Include="Dao\DaoSuppliers.cs" />
     <Compile Include="Dao\SuppliersEntity.cs" />
     <Compile Include="Dao\DaoOrders.cs" />
-    <Compile Include="Dao\OrdersEntity.cs" /></ItemGroup>
+    <Compile Include="Dao\OrdersEntity.cs" />
+    <Compile Include="Dao\DaoOrder_Details.cs" />
+    <Compile Include="Dao\Order_DetailsEntity.cs" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WSIFType_sample\WSIFType_sample.csproj">
       <Project>{E4ECBB27-684E-49C2-B0F5-6CEFE33F4BDB}</Project>

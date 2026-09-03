@@ -1,4 +1,11 @@
+# 前提
+- .NETは、net48、net10.0 が前提
+- Open棟梁は03-30開発中のdevelopを使用（2026/8）
+- 使用したCodingAgentは、ClaudeCode（モデルはClaude Opus 5）
+- LocalServicesOnDockerでDB（ローカル・サービス）を動かしておく。
+
 # 入力したプロンプト
+docのplan、specを参照するので以下の非常に短いプロンプトのみで検証可能。
 
 - .\docs\prompt\検証プロンプト.md の セットアップ > 基本 の Core、Transformを実行して下さい。
 

@@ -88,5 +88,15 @@ namespace WebForms_Sample.Aspx.Ord
         /// lblMessage コントロール。
         /// </summary>
         protected global::Touryo.Infrastructure.CustomControl.WebCustomLabel lblMessage;
+
+        /// <summary>
+        /// btnAddDetail コントロール。
+        /// </summary>
+        protected global::Touryo.Infrastructure.CustomControl.WebCustomButton btnAddDetail;
+
+        /// <summary>
+        /// gvwDetails コントロール。
+        /// </summary>
+        protected global::System.Web.UI.WebControls.GridView gvwDetails;
     }
 }

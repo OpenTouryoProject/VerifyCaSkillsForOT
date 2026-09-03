@@ -33,6 +33,9 @@ namespace MVC_Sample.Logic.Common
         /// <summary>詳細（自動生成Dao の参照＝R の結果。新規モードは 0 行＝スキーマだけ）</summary>
         public DataTable Order;
 
+        /// <summary>明細（Order Details）＝自動生成Dao の参照（Ｒ）の結果</summary>
+        public DataTable OrderDetails;
+
         #region ドロップダウン用のマスタ
 
         /// <summary>Customers（CustomerID / CompanyName）</summary>
@@ -43,6 +46,9 @@ namespace MVC_Sample.Logic.Common
 
         /// <summary>Shippers（ShipperID / CompanyName）</summary>
         public DataTable Shippers;
+
+        /// <summary>Products（ProductID / ProductName）＝明細の ＤＤＬ 用</summary>
+        public DataTable Products;
 
         #endregion
 
@@ -56,6 +62,18 @@ namespace MVC_Sample.Logic.Common
 
         /// <summary>DELETE した件数</summary>
         public int DeleteCount;
+
+        /// <summary>追加（Ｃ）で採番された親の OrderID（IDENTITY）</summary>
+        public int NewOrderID;
+
+        /// <summary>明細：INSERT した件数</summary>
+        public int DetailInsertCount;
+
+        /// <summary>明細：UPDATE した件数</summary>
+        public int DetailUpdateCount;
+
+        /// <summary>明細：DELETE した件数</summary>
+        public int DetailDeleteCount;
 
         #endregion
     }

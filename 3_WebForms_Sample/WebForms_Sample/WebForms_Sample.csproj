@@ -430,7 +430,9 @@
     <Compile Include="Aspx\Ord\OrdListSearch.aspx.cs" />
     <Compile Include="Aspx\Ord\OrdListSearch.aspx.designer.cs" />
     <Compile Include="Aspx\Ord\OrdDetailedView.aspx.cs" />
-    <Compile Include="Aspx\Ord\OrdDetailedView.aspx.designer.cs" /></ItemGroup>
+    <Compile Include="Aspx\Ord\OrdDetailedView.aspx.designer.cs" />
+    <Compile Include="AppCode\Dao\DaoOrder_Details.cs" />
+    <Compile Include="AppCode\Dao\Order_DetailsEntity.cs" /></ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
   </ItemGroup>

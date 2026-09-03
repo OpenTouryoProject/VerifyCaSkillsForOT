@@ -16,6 +16,7 @@
 //**********************************************************************************
 
 using System;
+using System.Globalization;
 using System.Data;
 using System.Web.UI.WebControls;
 
@@ -45,6 +46,9 @@ namespace WebForms_Sample.Aspx.Ord
         /// <summary>編集中の1行（DataTable）</summary>
         private const string SessionKeyOrder = "OrdEditingOrder";
 
+        /// <summary>編集中の明細（DataTable）</summary>
+        private const string SessionKeyDetails = "OrdEditingDetails";
+
         /// <summary>ＤＤＬ用のマスタ（DataSet）</summary>
         private const string SessionKeyMasters = "OrdMasters";
 
@@ -69,6 +73,17 @@ namespace WebForms_Sample.Aspx.Ord
             {
                 if (value == null) { this.Session.Remove(OrdDetailedView.SessionKeyOrder); }
                 else { this.Session[OrdDetailedView.SessionKeyOrder] = value; }
+            }
+        }
+
+        /// <summary>編集中の明細</summary>
+        private DataTable EditingDetails
+        {
+            get { return this.Session[OrdDetailedView.SessionKeyDetails] as DataTable; }
+            set
+            {
+                if (value == null) { this.Session.Remove(OrdDetailedView.SessionKeyDetails); }
+                else { this.Session[OrdDetailedView.SessionKeyDetails] = value; }
             }
         }
 
@@ -117,19 +132,20 @@ namespace WebForms_Sample.Aspx.Ord
             this.CudDone = false;
 
             // --- ① マスタ・テーブルの取得 → 入力用ＤＤＬ 生成（仕様） ---
-            OrdReturnValue masters = this.CallLayerB("OrdMasters", null, null);
+            OrdReturnValue masters = this.CallLayerB("OrdMasters", null, null, null);
             if (masters != null)
             {
                 DataSet ds = new DataSet();
                 ds.Tables.Add(masters.Customers.Copy());
                 ds.Tables.Add(masters.Employees.Copy());
                 ds.Tables.Add(masters.Shippers.Copy());
+                ds.Tables.Add(masters.Products.Copy());
                 this.Masters = ds;
             }
             this.BindInputDdl();
 
             // --- ② 詳細（自動生成Dao の参照＝Ｒ）。追加モードは 0 件＝スキーマだけ戻る ---
-            OrdReturnValue detail = this.CallLayerB("OrdDetailedView", this.TargetOrderId, null);
+            OrdReturnValue detail = this.CallLayerB("OrdDetailedView", this.TargetOrderId, null, null);
             if (detail == null) { this.SetMainButtons(); return; }
 
             DataTable dt = detail.Order;
@@ -147,13 +163,24 @@ namespace WebForms_Sample.Aspx.Ord
 
             this.EditingOrder = dt;
             this.RowToScreen(dt.Rows[0]);
+
+            // --- ③ 明細（Order Details）の参照（Ｒ）結果をグリッドにバインドする ---
+            this.EditingDetails = detail.OrderDetails;
+            this.BindDetailGrid(detail.OrderDetails);
+
             this.SetMainButtons();
         }
 
         /// <summary>ポストバック時の処理</summary>
         protected override void UOC_FormInit_PostBack()
         {
-            // ＤＤＬ は ViewState で復元されるので作り直さない
+            // ＤＤＬ は ViewState で復元されるので作り直さない。
+            // ★ 明細グリッドも「ポストバックのたびに再バインドしてはいけない」。
+            //   DataBind() は行内コントロールを作り直すので、ポストされた入力値が
+            //   読み戻し（ReadDetailGrid）より前に捨てられる。
+            //   ＝実測では明細2行が既定値のまま INSERT され PRIMARY KEY 違反になった。
+            //   行内コントロールの値は ViewState ＋ ポスト値から復元されるので、
+            //   バインドは「行追加／行削除／反映後の再表示」など明示的な場面だけで行う。
             this.SetMainButtons();
         }
 
@@ -236,6 +263,10 @@ namespace WebForms_Sample.Aspx.Ord
             this.ScreenToRow(dt.Rows[0]);
             this.EditingOrder = dt;
 
+            DataTable details = this.EditingDetails;
+            this.ReadDetailGrid(details, -1);
+            this.EditingDetails = details;
+
             // 共通仕様：確認ダイアログはフレームワークの ShowYesNoMessageDialog を使う
             this.ShowYesNoMessageDialog("OrdCud", question, "確認");
             return string.Empty;
@@ -298,7 +329,9 @@ namespace WebForms_Sample.Aspx.Ord
                 return;
             }
 
-            OrdReturnValue returnValue = this.CallLayerB(methodName, this.TargetOrderId, dt);
+            DataTable details = this.EditingDetails;
+
+            OrdReturnValue returnValue = this.CallLayerB(methodName, this.TargetOrderId, dt, details);
             if (returnValue == null)
             {
                 // 業務例外＝ロールバック済み。入力を残してやり直せるようにする。
@@ -307,9 +340,14 @@ namespace WebForms_Sample.Aspx.Ord
 
             dt.AcceptChanges();
             this.EditingOrder = dt;
+            if (details != null) { details.AcceptChanges(); }
+            this.EditingDetails = details;
+            this.BindDetailGrid(details);
 
             string message = caption + "しました（"
-                + (returnValue.InsertCount + returnValue.UpdateCount + returnValue.DeleteCount) + " 件）。";
+                + (returnValue.InsertCount + returnValue.UpdateCount + returnValue.DeleteCount) + " 件"
+                + "／明細 追加 " + returnValue.DetailInsertCount + " 件・更新 " + returnValue.DetailUpdateCount
+                + " 件・削除 " + returnValue.DetailDeleteCount + " 件）。";
 
             // ★ 追加・削除の後は、この画面のＣＵＤを止める（同じ行を二重に追加／削除できないように）。
             //   更新は続けて行える（AcceptChanges で Original が現在値に揃うので楽観排他も成立する）。
@@ -411,15 +449,195 @@ namespace WebForms_Sample.Aspx.Ord
 
             try
             {
-                if (t == typeof(int)) { dr[columnName] = int.Parse(edited); }
-                else if (t == typeof(decimal)) { dr[columnName] = decimal.Parse(edited); }
-                else if (t == typeof(DateTime)) { dr[columnName] = DateTime.Parse(edited); }
-                else { dr[columnName] = edited; }
+                // ★ 明細（Order Details）は short（Quantity）／float（Discount）／decimal（UnitPrice）
+                //   なので、int / decimal の決め打ちでは足りない。列の型へ一般化して変換する。
+                if (t == typeof(DateTime)) { dr[columnName] = DateTime.Parse(edited); }
+                else if (t == typeof(string)) { dr[columnName] = edited; }
+                else { dr[columnName] = Convert.ChangeType(edited, t, CultureInfo.InvariantCulture); }
             }
             catch (FormatException)
             {
                 // 変換できない入力は無視する（元の値のまま）
             }
+            catch (InvalidCastException)
+            {
+                // 変換できない入力は無視する（元の値のまま）
+            }
+            catch (OverflowException)
+            {
+                // 変換できない入力は無視する（元の値のまま）
+            }
+        }
+
+        #endregion
+
+        #region 明細（Order Details）
+
+        /// <summary>btnAddDetail（明細行追加＝空行を足す）のクリック イベント</summary>
+        /// <param name="fxEventArgs">イベント ハンドラの共通引数</param>
+        /// <returns>遷移先 URL（遷移しないので空文字列）</returns>
+        protected string UOC_btnAddDetail_Click(FxEventArgs fxEventArgs)
+        {
+            DataTable details = this.EditingDetails;
+            if (details == null) { this.lblMessage.Text = "画面を開き直して下さい。"; return string.Empty; }
+
+            this.ReadDetailGrid(details, -1);
+
+            // ★ Order Details は全列 NOT NULL、かつ CHECK 制約
+            //   （Quantity > 0／Discount 0〜1／UnitPrice >= 0）がある。
+            //   空行のままバッチ更新すると SqlException（515／547）になるので既定値を入れる。
+            DataRow nr = details.NewRow();
+            nr["OrderID"] = string.IsNullOrEmpty(this.TargetOrderId) ? 0 : int.Parse(this.TargetOrderId);
+            nr["ProductID"] = OrdDetailedView.FirstProductId(this.Masters);
+            nr["UnitPrice"] = 0m;
+            nr["Quantity"] = (short)1;
+            nr["Discount"] = 0f;
+            details.Rows.Add(nr);
+
+            this.EditingDetails = details;
+            this.BindDetailGrid(details);
+            this.lblMessage.Text = "明細行を追加しました（［追加］／［更新］でDBに反映されます）。";
+            return string.Empty;
+        }
+
+        /// <summary>gvwDetails の RowCommand イベント（行ごとの［更新］［削除］）</summary>
+        /// <param name="fxEventArgs">イベント ハンドラの共通引数</param>
+        /// <returns>遷移先 URL（遷移しないので空文字列）</returns>
+        protected string UOC_gvwDetails_RowCommand(FxEventArgs fxEventArgs)
+        {
+            DataTable details = this.EditingDetails;
+            if (details == null) { this.lblMessage.Text = "画面を開き直して下さい。"; return string.Empty; }
+
+            int displayIndex = int.Parse(fxEventArgs.PostBackValue);
+
+            switch (fxEventArgs.InnerButtonID)
+            {
+                case "Update":
+                    this.ReadDetailGrid(details, displayIndex);
+                    this.lblMessage.Text = "明細行を更新しました（［追加］／［更新］でDBに反映されます）。";
+                    break;
+
+                case "Delete":
+                    this.ReadDetailGrid(details, -1);
+                    DataRow target = OrdDetailedView.GetDetailRowForDisplayIndex(details, displayIndex);
+                    if (target != null) { target.Delete(); }   // ★ Rows.Remove ではない
+                    this.lblMessage.Text = "明細行を削除しました（［追加］／［更新］でDBに反映されます）。";
+                    break;
+
+                default:
+                    break;
+            }
+
+            this.EditingDetails = details;
+            this.BindDetailGrid(details);
+            return string.Empty;
+        }
+
+        /// <summary>gvwDetails の RowDataBound イベント（行内 ＤＤＬ とテキストに値を入れる）</summary>
+        /// <param name="sender">sender</param>
+        /// <param name="e">e</param>
+        /// <remarks>
+        /// ★ RowDataBound はフレームワークの自動結線対象外なので .aspx の OnRowDataBound で結線する
+        ///   （表示専用の処理なので、フレームワークの例外処理・ログを通らなくても影響が小さい）。
+        /// </remarks>
+        protected void gvwDetails_RowDataBound(object sender, GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType != DataControlRowType.DataRow) { return; }
+
+            DataRowView drv = e.Row.DataItem as DataRowView;
+            if (drv == null) { return; }
+
+            DataSet masters = this.Masters;
+            if (masters != null)
+            {
+                DropDownList ddl = (DropDownList)e.Row.FindControl("ProductID");
+                OrdDetailedView.BindDdl(ddl, masters.Tables["Products"], "ProductID", "ProductName");
+                OrdDetailedView.SelectValue(ddl, OrdDetailedView.CellText(drv.Row, "ProductID"));
+            }
+
+            OrdDetailedView.SetTextBox(e.Row, "UnitPrice", OrdDetailedView.CellText(drv.Row, "UnitPrice"));
+            OrdDetailedView.SetTextBox(e.Row, "Quantity", OrdDetailedView.CellText(drv.Row, "Quantity"));
+            OrdDetailedView.SetTextBox(e.Row, "Discount", OrdDetailedView.CellText(drv.Row, "Discount"));
+        }
+
+        /// <summary>明細グリッドに DataTable をバインドする</summary>
+        /// <param name="details">編集中の明細</param>
+        private void BindDetailGrid(DataTable details)
+        {
+            this.gvwDetails.DataSource = details;
+            this.gvwDetails.DataBind();
+        }
+
+        /// <summary>グリッドのセル値を明細 DataTable へ読み戻す</summary>
+        /// <param name="details">編集中の明細</param>
+        /// <param name="targetDisplayIndex">確定する既存行の表示 index（-1＝追加行のみ）</param>
+        /// <remarks>
+        /// ★ 読み戻す行は「追加行は常に／既存行はその行の［更新］のとき／削除行は対象外」
+        ///   （opentouryo-batch-update の Web 共通ルール）。
+        /// </remarks>
+        private void ReadDetailGrid(DataTable details, int targetDisplayIndex)
+        {
+            if (details == null) { return; }
+
+            foreach (GridViewRow gvr in this.gvwDetails.Rows)
+            {
+                if (gvr.RowType != DataControlRowType.DataRow) { continue; }
+
+                DataRow dr = OrdDetailedView.GetDetailRowForDisplayIndex(details, gvr.RowIndex);
+                if (dr == null) { continue; }
+                if (dr.RowState != DataRowState.Added && gvr.RowIndex != targetDisplayIndex) { continue; }
+
+                OrdDetailedView.SetIfChanged(dr, "ProductID", OrdDetailedView.GetDdlValue(gvr, "ProductID"));
+                OrdDetailedView.SetIfChanged(dr, "UnitPrice", OrdDetailedView.GetCellText(gvr, "UnitPrice"));
+                OrdDetailedView.SetIfChanged(dr, "Quantity", OrdDetailedView.GetCellText(gvr, "Quantity"));
+                OrdDetailedView.SetIfChanged(dr, "Discount", OrdDetailedView.GetCellText(gvr, "Discount"));
+            }
+        }
+
+        /// <summary>表示 index に対応する DataRow を返す（Deleted を飛ばして数える）</summary>
+        /// <param name="dt">明細</param>
+        /// <param name="displayIndex">表示 index</param>
+        /// <returns>DataRow（無ければ null）</returns>
+        /// <remarks>★ Deleted 行は DefaultView から外れるので、そのままでは index がずれる。</remarks>
+        private static DataRow GetDetailRowForDisplayIndex(DataTable dt, int displayIndex)
+        {
+            int i = -1;
+            foreach (DataRow dr in dt.Rows)
+            {
+                if (dr.RowState == DataRowState.Deleted) { continue; }
+                if (++i == displayIndex) { return dr; }
+            }
+            return null;
+        }
+
+        /// <summary>行内の TextBox に値を設定する</summary>
+        private static void SetTextBox(GridViewRow gvr, string controlId, string value)
+        {
+            TextBox tb = (TextBox)gvr.FindControl(controlId);
+            if (tb != null) { tb.Text = value; }
+        }
+
+        /// <summary>行内の TextBox の値を取得する</summary>
+        private static string GetCellText(GridViewRow gvr, string controlId)
+        {
+            TextBox tb = (TextBox)gvr.FindControl(controlId);
+            return (tb == null) ? "" : tb.Text;
+        }
+
+        /// <summary>行内の ＤＤＬ の値を取得する</summary>
+        private static string GetDdlValue(GridViewRow gvr, string controlId)
+        {
+            DropDownList ddl = (DropDownList)gvr.FindControl(controlId);
+            return (ddl == null) ? "" : ddl.SelectedValue;
+        }
+
+        /// <summary>マスタの先頭の ProductID（新規明細行の既定値）</summary>
+        private static object FirstProductId(DataSet masters)
+        {
+            if (masters == null || masters.Tables["Products"] == null
+                || masters.Tables["Products"].Rows.Count == 0) { return DBNull.Value; }
+
+            return masters.Tables["Products"].Rows[0]["ProductID"];
         }
 
         #endregion
@@ -475,7 +693,7 @@ namespace WebForms_Sample.Aspx.Ord
         /// <param name="orderId">対象の OrderID</param>
         /// <param name="order">ＣＵＤの対象（参照系は null）</param>
         /// <returns>戻り値クラス（業務例外時は null）</returns>
-        private OrdReturnValue CallLayerB(string methodName, string orderId, DataTable order)
+        private OrdReturnValue CallLayerB(string methodName, string orderId, DataTable order, DataTable details)
         {
             // ↓Ｂ層実行---------------------------------------------------------
             OrdParameterValue parameterValue = new OrdParameterValue(
@@ -483,6 +701,7 @@ namespace WebForms_Sample.Aspx.Ord
 
             parameterValue.OrderID = orderId;
             parameterValue.Order = order;
+            parameterValue.OrderDetails = details;
 
             // Ｂ層呼出し（Web はインプロセス直呼び）
             OrdReturnValue returnValue = (OrdReturnValue)new LayerB()

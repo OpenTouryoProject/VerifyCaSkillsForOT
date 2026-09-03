@@ -66,6 +66,15 @@ namespace MVC_Sample.Logic.Common
         /// </remarks>
         public DataTable Order;
 
+        /// <summary>
+        /// ＣＵＤの対象となる明細（Order Details）
+        /// </summary>
+        /// <remarks>
+        /// ★ 親（Orders）と違い RowState でバッチ更新する（追加＝Added／更新＝Modified／削除＝Deleted）。
+        ///   楽観排他のため取得時の値（DataRowVersion.Original）を残したまま運ぶ。
+        /// </remarks>
+        public DataTable OrderDetails;
+
         #endregion
 
         #region コンストラクタ

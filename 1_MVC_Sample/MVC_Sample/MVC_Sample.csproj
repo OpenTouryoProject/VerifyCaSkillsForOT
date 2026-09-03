@@ -290,7 +290,9 @@
     <Compile Include="Logic\Common\OrdReturnValue.cs" />
     <Compile Include="Models\ViewModels\OrdViewModel.cs" />
     <Compile Include="Controllers\OrdListSearchController.cs" />
-    <Compile Include="Controllers\OrdDetailedViewController.cs" /></ItemGroup>
+    <Compile Include="Controllers\OrdDetailedViewController.cs" />
+    <Compile Include="Logic\Dao\DaoOrder_Details.cs" />
+    <Compile Include="Logic\Dao\Order_DetailsEntity.cs" /></ItemGroup>
   <ItemGroup>
     <Content Include="Content\app\Site.css" />
     <Content Include="Content\bootstrap-grid.css" />

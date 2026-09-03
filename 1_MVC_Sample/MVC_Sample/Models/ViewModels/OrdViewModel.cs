@@ -15,6 +15,7 @@
 //*  2026/09/02  生技              新規作成
 //**********************************************************************************
 
+using System.Collections.Generic;
 using System.Data;
 
 namespace MVC_Sample.Models.ViewModels
@@ -132,12 +133,49 @@ namespace MVC_Sample.Models.ViewModels
 
         #endregion
 
+        #region 明細（Order Details）
+
+        /// <summary>明細の表示元（RowState を保持した DataTable）</summary>
+        public DataTable OrderDetails { get; set; }
+
+        /// <summary>Products（ProductID / ProductName）＝明細の ＤＤＬ 用</summary>
+        public DataTable Products { get; set; }
+
+        /// <summary>ポストバックで戻ってくる明細（モデルバインド先）</summary>
+        public List<OrdDetailRowViewModel> DetailRows { get; set; }
+
+        #endregion
+
         /// <summary>コンストラクタ</summary>
         public OrdViewModel()
         {
             this.Message = "";
             this.PageIndex = 1;
             this.PageSize = 20;
+            this.DetailRows = new List<OrdDetailRowViewModel>();
         }
+    }
+
+    /// <summary>明細（Order Details）1行分の ViewModel</summary>
+    /// <remarks>
+    /// ★ DataTable 側は型付き（int / decimal / short / float）だが、画面から戻る値は文字列。
+    ///   DataRow へ書き戻すときに列の型へ変換する（変換はコントローラ側の SetIfChanged）。
+    /// </remarks>
+    public class OrdDetailRowViewModel
+    {
+        /// <summary>DataTable の行インデックス（Deleted 行は描画しないので表示連番とはズレる）</summary>
+        public int RowIndex { get; set; }
+
+        /// <summary>ProductID</summary>
+        public string ProductID { get; set; }
+
+        /// <summary>UnitPrice</summary>
+        public string UnitPrice { get; set; }
+
+        /// <summary>Quantity</summary>
+        public string Quantity { get; set; }
+
+        /// <summary>Discount</summary>
+        public string Discount { get; set; }
     }
 }

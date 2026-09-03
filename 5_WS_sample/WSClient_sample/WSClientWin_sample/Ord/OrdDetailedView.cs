@@ -74,6 +74,20 @@ namespace WSClientWin_sample.Ord
         private TextBox txtShipCountry;
         private Label labelMessage;
 
+        #region 明細（Order Details）
+
+        /// <summary>明細（RowState を保持した DataTable）</summary>
+        private DataTable dtOrderDetails;
+
+        /// <summary>明細の ProductID を ＤＤＬ 化するためのマスタ</summary>
+        private DataTable dtProducts;
+
+        private BindingSource bindingSourceDetails = new BindingSource();
+        private DataGridView dgvDetails;
+        private Button btnAddDetail;
+
+        #endregion
+
         /// <summary>コンストラクタ</summary>
         /// <param name="orderId">対象の OrderID（null／空＝追加モード）</param>
         public OrdDetailedView(string orderId)
@@ -83,8 +97,8 @@ namespace WSClientWin_sample.Ord
             this.Updated = false;
 
             this.Text = "受注管理（Ord）：詳細・更新";
-            this.Width = 700;
-            this.Height = 560;
+            this.Width = 1180;
+            this.Height = 620;
             this.StartPosition = FormStartPosition.CenterParent;
 
             int y = 16;
@@ -112,8 +126,38 @@ namespace WSClientWin_sample.Ord
             this.labelMessage = new Label();
             this.labelMessage.Name = "labelMessage";
             this.labelMessage.Location = new Point(12, y + 8);
-            this.labelMessage.Size = new Size(650, 20);
+            this.labelMessage.Size = new Size(1120, 20);
             this.Controls.Add(this.labelMessage);
+
+            // --- 明細（Order Details）。親の単票の右に並べる ---
+            Label detailCaption = new Label();
+            detailCaption.Text = "明細（Order Details）";
+            detailCaption.Location = new Point(680, 20);
+            detailCaption.Size = new Size(200, 20);
+            this.Controls.Add(detailCaption);
+
+            // ★ ［明細行追加］はグリッド外の通常ボタン（スキル準拠）。
+            //   行削除は DataGridView 標準の Delete キー（＝DataRowView.Delete()＝Deleted）。
+            //   行内の［更新］ボタンは WinForms では不要（セル編集が DataTable に自動反映される）。
+            this.btnAddDetail = new Button();
+            this.btnAddDetail.Name = "btnAddDetail";
+            this.btnAddDetail.Text = "明細行追加";
+            this.btnAddDetail.Location = new Point(900, 16);
+            this.btnAddDetail.Size = new Size(110, 28);
+            this.Controls.Add(this.btnAddDetail);
+
+            this.dgvDetails = new DataGridView();
+            this.dgvDetails.Name = "dgvDetails";
+            this.dgvDetails.Location = new Point(680, 52);
+            this.dgvDetails.Size = new Size(460, 380);
+            this.dgvDetails.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            this.dgvDetails.AllowUserToDeleteRows = true;    // Delete キーで Deleted になる
+            this.dgvDetails.AllowUserToAddRows = false;      // 追加はグリッド外ボタン
+            this.dgvDetails.AutoGenerateColumns = false;
+            // ★ ＤＤＬ 列にマスタに無い値が来ても例外ダイアログを出さない
+            this.dgvDetails.DataError += delegate(object sender, DataGridViewDataErrorEventArgs e) { e.ThrowException = false; };
+            this.dgvDetails.DataSource = this.bindingSourceDetails;
+            this.Controls.Add(this.dgvDetails);
         }
 
         #region 初期化・ボタン
@@ -129,6 +173,7 @@ namespace WSClientWin_sample.Ord
                 this.dtCustomers = masters.Customers;
                 this.dtEmployees = masters.Employees;
                 this.dtShippers = masters.Shippers;
+                this.dtProducts = masters.Products;
             }
 
             OrdDetailedView.FillCombo(this.ddlCustomerID, this.dtCustomers, "CustomerID", "CompanyName");
@@ -152,8 +197,86 @@ namespace WSClientWin_sample.Ord
                 this.isNew = false;
             }
 
+            // --- ③ 明細（Order Details）の参照（Ｒ）結果をグリッドにバインドする ---
+            this.dtOrderDetails = detail.OrderDetails;
+            this.BuildDetailColumns();
+            this.bindingSourceDetails.DataSource = this.dtOrderDetails;
+
             this.RowToScreen();
             this.SetButtons();
+        }
+
+        /// <summary>明細グリッドの列を作る（ProductID はマスタ ＤＤＬ）</summary>
+        private void BuildDetailColumns()
+        {
+            this.dgvDetails.Columns.Clear();
+
+            DataGridViewComboBoxColumn product = new DataGridViewComboBoxColumn();
+            product.Name = "ProductID";
+            product.DataPropertyName = "ProductID";
+            product.HeaderText = "商品";
+            product.Width = 200;
+            product.DisplayMember = "ProductName";
+            product.ValueMember = "ProductID";
+            product.DataSource = (this.dtProducts == null) ? null : this.dtProducts.Copy();
+            this.dgvDetails.Columns.Add(product);
+
+            OrdDetailedView.AddDetailTextColumn(this.dgvDetails, "UnitPrice", "単価", 80);
+            OrdDetailedView.AddDetailTextColumn(this.dgvDetails, "Quantity", "数量", 60);
+            OrdDetailedView.AddDetailTextColumn(this.dgvDetails, "Discount", "割引", 60);
+        }
+
+        /// <summary>明細グリッドのテキスト列を足す</summary>
+        private static void AddDetailTextColumn(DataGridView grid, string col, string header, int width)
+        {
+            DataGridViewTextBoxColumn c = new DataGridViewTextBoxColumn();
+            c.Name = col; c.DataPropertyName = col; c.HeaderText = header; c.Width = width;
+            grid.Columns.Add(c);
+        }
+
+        /// <summary>
+        /// グリッドの保留中の編集を確定する
+        /// </summary>
+        /// <remarks>
+        /// ★ EndEdit() はセルの編集しか確定しない。行（DataRowView）の保留編集は
+        ///   CurrencyManager.EndCurrentEdit() まで確定しない（呼ばずに進むと入力が失われる）。
+        /// </remarks>
+        private void CommitGridEdits()
+        {
+            this.dgvDetails.EndEdit();
+            this.bindingSourceDetails.CurrencyManager.EndCurrentEdit();
+        }
+
+        /// <summary>btnAddDetail（明細行追加＝空行を足す）</summary>
+        /// <param name="rcFxEventArgs">イベント ハンドラの共通引数</param>
+        protected void UOC_btnAddDetail_Click(RcFxEventArgs rcFxEventArgs)
+        {
+            if (this.dtOrderDetails == null) { return; }
+
+            // ★ 先に保留編集を確定する
+            this.CommitGridEdits();
+
+            // ★ Order Details は全列 NOT NULL、かつ CHECK 制約
+            //   （Quantity > 0／Discount 0〜1／UnitPrice >= 0）がある。
+            //   空行のままバッチ更新すると SqlException（515／547）になるので既定値を入れる。
+            DataRow nr = this.dtOrderDetails.NewRow();
+            nr["OrderID"] = string.IsNullOrEmpty(this.targetOrderId) ? 0 : int.Parse(this.targetOrderId);
+            nr["ProductID"] = OrdDetailedView.FirstProductId(this.dtProducts);
+            nr["UnitPrice"] = 0m;
+            nr["Quantity"] = (short)1;
+            nr["Discount"] = 0f;
+            this.dtOrderDetails.Rows.Add(nr);
+
+            this.labelMessage.Text = "明細行を追加しました（［追加］／［更新］でDBに反映されます）。";
+        }
+
+        /// <summary>マスタの先頭の ProductID（新規明細行の既定値）</summary>
+        /// <param name="products">Products マスタ</param>
+        /// <returns>ProductID</returns>
+        private static object FirstProductId(DataTable products)
+        {
+            if (products == null || products.Rows.Count == 0) { return DBNull.Value; }
+            return products.Rows[0]["ProductID"];
         }
 
         /// <summary>終了処理</summary>
@@ -217,6 +340,9 @@ namespace WSClientWin_sample.Ord
                 return;
             }
 
+            // ★ 確認ダイアログの前に、グリッドの保留編集を確定する。
+            this.CommitGridEdits();
+
             // ★ 削除は画面の入力値を使わない（取得時の値で楽観排他する）ので読み戻さない。
             if (methodName != "OrdDelete") { this.ScreenToRow(); }
 
@@ -231,9 +357,12 @@ namespace WSClientWin_sample.Ord
             if (rv == null) { return; }
 
             this.dtOrder.AcceptChanges();
+            if (this.dtOrderDetails != null) { this.dtOrderDetails.AcceptChanges(); }
             this.Updated = true;
 
-            string message = caption + "しました（" + (rv.InsertCount + rv.UpdateCount + rv.DeleteCount) + " 件）。";
+            string message = caption + "しました（" + (rv.InsertCount + rv.UpdateCount + rv.DeleteCount) + " 件"
+                + "／明細 追加 " + rv.DetailInsertCount + " 件・更新 " + rv.DetailUpdateCount
+                + " 件・削除 " + rv.DetailDeleteCount + " 件）。";
             this.labelMessage.Text = message;
             MessageBox.Show(message, caption, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -471,6 +600,7 @@ namespace WSClientWin_sample.Ord
 
             pv.OrderID = orderId;
             pv.Order = order;
+            pv.OrderDetails = (order == null) ? null : this.dtOrderDetails;
 
             // ★ 3層はサービス論理名で呼ぶ＝トランザクション（分離レベル・コミット）はサーバ側。
             CallController callController = new CallController(MyBaseControllerWin.UserInfo);

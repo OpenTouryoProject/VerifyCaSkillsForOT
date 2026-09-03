@@ -1485,6 +1485,12 @@ namespace WSServer_sample.Business
             dao.SQLFileName = "ShipperListForDdl.sql";
             dao.ExecSelectFill_DT(shippers);
             returnValue.Shippers = shippers;
+
+            // 明細（Order Details）の ProductID を ＤＤＬ 化するためのマスタ
+            DataTable products = new DataTable("Products");
+            dao.SQLFileName = "ProductListForDdl.sql";
+            dao.ExecSelectFill_DT(products);
+            returnValue.Products = products;
             // ↑業務処理-----------------------------------------------------
         }
 
@@ -1518,6 +1524,18 @@ namespace WSServer_sample.Business
             DataTable dt = new DataTable("Orders");
             dao.S2_Select(dt);
             returnValue.Order = dt;
+
+            // --- 明細（Order Details）を参照（Ｒ）する ---
+            // ★ 複合主キー（OrderID + ProductID）のうち OrderID だけを設定して動的クエリを使う。
+            //   設定しなかった列の <IF> はブロックごと消えるので、WHERE は [OrderID] = @OrderID
+            //   だけになり、その受注の明細が全件取れる（S2_Select は複合主キー全指定＝1件用）。
+            DaoOrder_Details detailDao = new DaoOrder_Details(this.GetDam());
+            detailDao.ClearParametersFromHt();
+            detailDao.PK_OrderID = orderId;
+
+            DataTable details = new DataTable("OrderDetails");
+            detailDao.D2_Select(details);
+            returnValue.OrderDetails = details;
             // ↑業務処理-----------------------------------------------------
         }
 
@@ -1558,6 +1576,17 @@ namespace WSServer_sample.Business
             dao.ShipCountry    = LayerB.OrdCurrent(dr, "ShipCountry");
 
             returnValue.InsertCount = dao.D1_Insert();
+
+            // --- 採番された OrderID を取り、明細（子）に差し込んでバッチ追加する ---
+            // ★ SCOPE_IDENTITY() は同一スコープ（＝同一バッチ）限定なので、別コマンドで実行する
+            //   ここでは NULL になる。@@IDENTITY は同一コネクション内で有効＝Ｂ層が持つ接続のまま取れる。
+            CmnDao idDao = new CmnDao(this.GetDam());
+            idDao.SQLFileName = "OrdLastIdentity.sql";
+            object newId = idDao.ExecSelectScalar();
+            returnValue.NewOrderID = (newId == null || newId == DBNull.Value) ? 0 : Convert.ToInt32(newId);
+
+            LayerB.BatchUpdateOrdDetails(
+                this.GetDam(), parameterValue.OrderDetails, returnValue.NewOrderID, returnValue);
             // ↑業務処理-----------------------------------------------------
         }
 
@@ -1605,6 +1634,11 @@ namespace WSServer_sample.Business
                     "OrderID = " + dr["OrderID", DataRowVersion.Original]);
             }
             returnValue.UpdateCount = updated;
+
+            // --- 子（明細）のバッチ更新。親と同じトランザクション（この UOC メソッド全体）で行う ---
+            LayerB.BatchUpdateOrdDetails(
+                this.GetDam(), parameterValue.OrderDetails,
+                dr["OrderID", DataRowVersion.Original], returnValue);
             // ↑業務処理-----------------------------------------------------
         }
 
@@ -1618,6 +1652,14 @@ namespace WSServer_sample.Business
 
             // ↓業務処理-----------------------------------------------------
             DataRow dr = LayerB.GetOrdSingleRow(parameterValue);
+
+            // ★ FK（FK_Order_Details_Orders）があるので、子（明細）を先に消す。
+            //   親から消すと参照整合性違反で落ちる（順序を間違えると実行時まで分からない）。
+            //   複合主キーのうち OrderID だけを設定＝その受注の明細を全件削除する。
+            DaoOrder_Details detailDao = new DaoOrder_Details(this.GetDam());
+            detailDao.ClearParametersFromHt();
+            detailDao.PK_OrderID = dr["OrderID", DataRowVersion.Original];
+            returnValue.DetailDeleteCount = detailDao.D4_Delete();
 
             DaoOrders dao = new DaoOrders(this.GetDam());
             dao.ClearParametersFromHt();
@@ -1698,6 +1740,104 @@ namespace WSServer_sample.Business
             object value = dr[columnName];
             if (value == DBNull.Value) { return DBNull.Value; }
             return (value.ToString().Length == 0) ? (object)DBNull.Value : value;
+        }
+
+        #endregion
+
+        #region 明細（Order Details）のバッチ更新
+
+        /// <summary>明細（Order Details）を RowState で振り分けてバッチ更新する</summary>
+        /// <param name="dam">Ｂ層が持つ Dam（親と同じ接続・同じトランザクション）</param>
+        /// <param name="details">明細の DataTable（RowState を保持したもの）</param>
+        /// <param name="orderId">親の OrderID（追加時は採番値を差し込む）</param>
+        /// <param name="returnValue">戻り値クラス（件数を積む）</param>
+        /// <remarks>
+        /// ★ 削除 → 追加 の順で流す（同じ主キーを付け替えたときに旧行と衝突しないため）。
+        /// ★ 楽観排他は親と同じ考え方（取得時の値を WHERE に入れ、件数0 を業務例外にする）。
+        /// </remarks>
+        private static void BatchUpdateOrdDetails(
+            Touryo.Infrastructure.Public.Db.BaseDam dam, DataTable details, object orderId, OrdReturnValue returnValue)
+        {
+            if (details == null) { return; }
+
+            DaoOrder_Details dao = new DaoOrder_Details(dam);
+
+            foreach (DataRow dr in details.Rows)
+            {
+                if (dr.RowState != DataRowState.Deleted) { continue; }
+
+                dao.ClearParametersFromHt();
+
+                // ★ 削除行は DataRowVersion.Original しか読めない。
+                dao.PK_OrderID   = dr["OrderID", DataRowVersion.Original];
+                dao.PK_ProductID = dr["ProductID", DataRowVersion.Original];
+                dao.UnitPrice    = LayerB.OrdWhere(dr, "UnitPrice");
+                dao.Quantity     = LayerB.OrdWhere(dr, "Quantity");
+                dao.Discount     = LayerB.OrdWhere(dr, "Discount");
+
+                int deleted = dao.D4_Delete();
+                if (deleted == 0)
+                {
+                    throw new BusinessApplicationException(
+                        "OrdDetailUpdate", "明細が他のユーザによって更新されています。",
+                        "ProductID = " + dr["ProductID", DataRowVersion.Original]);
+                }
+                returnValue.DetailDeleteCount += deleted;
+            }
+
+            foreach (DataRow dr in details.Rows)
+            {
+                switch (dr.RowState)
+                {
+                    case DataRowState.Added:
+
+                        dao.ClearParametersFromHt();
+
+                        // ★ Order Details は IDENTITY を持たず全列 NOT NULL なので、
+                        //   全列必須の S1_Insert がそのまま使える
+                        //   （親 Orders は IDENTITY があるため D1_Insert 一択だったのと対照的）。
+                        dao.PK_OrderID   = orderId;
+                        dao.PK_ProductID = LayerB.OrdCurrent(dr, "ProductID");
+                        dao.UnitPrice    = LayerB.OrdCurrent(dr, "UnitPrice");
+                        dao.Quantity     = LayerB.OrdCurrent(dr, "Quantity");
+                        dao.Discount     = LayerB.OrdCurrent(dr, "Discount");
+
+                        returnValue.DetailInsertCount += dao.S1_Insert();
+                        break;
+
+                    case DataRowState.Modified:
+
+                        dao.ClearParametersFromHt();
+
+                        // WHERE 用：取得時の主キー＋取得時の値（楽観排他）
+                        dao.PK_OrderID   = dr["OrderID", DataRowVersion.Original];
+                        dao.PK_ProductID = dr["ProductID", DataRowVersion.Original];
+                        dao.UnitPrice    = LayerB.OrdWhere(dr, "UnitPrice");
+                        dao.Quantity     = LayerB.OrdWhere(dr, "Quantity");
+                        dao.Discount     = LayerB.OrdWhere(dr, "Discount");
+
+                        // SET 用：現在値（ProductID の付け替えも許す）
+                        dao.Set_OrderID_forUPD   = orderId;
+                        dao.Set_ProductID_forUPD = LayerB.OrdCurrent(dr, "ProductID");
+                        dao.Set_UnitPrice_forUPD = LayerB.OrdCurrent(dr, "UnitPrice");
+                        dao.Set_Quantity_forUPD  = LayerB.OrdCurrent(dr, "Quantity");
+                        dao.Set_Discount_forUPD  = LayerB.OrdCurrent(dr, "Discount");
+
+                        int updated = dao.D3_Update();
+                        if (updated == 0)
+                        {
+                            throw new BusinessApplicationException(
+                                "OrdDetailUpdate", "明細が他のユーザによって更新されています。",
+                                "ProductID = " + dr["ProductID", DataRowVersion.Original]);
+                        }
+                        returnValue.DetailUpdateCount += updated;
+                        break;
+
+                    default:
+                        // Unchanged / Deleted（Deleted は上のループで処理済み）は対象外
+                        break;
+                }
+            }
         }
 
         #endregion

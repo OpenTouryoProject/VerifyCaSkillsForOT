@@ -138,7 +138,9 @@
     <Compile Include="Common\OrdReturnValue.cs" />
     <Compile Include="Ord\OrdBaseForm.cs" />
     <Compile Include="Ord\OrdListSearch.cs" />
-    <Compile Include="Ord\OrdDetailedView.cs" /></ItemGroup>
+    <Compile Include="Ord\OrdDetailedView.cs" />
+    <Compile Include="Dao\DaoOrder_Details.cs" />
+    <Compile Include="Dao\Order_DetailsEntity.cs" /></ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>

@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" MasterPageFile="~/Aspx/Common/Master/testBlankScreen.master" AutoEventWireup="true" Inherits="WebForms_Sample.Aspx.Ord.OrdDetailedView" Codebehind="OrdDetailedView.aspx.cs" %>
+﻿<%@ Page Language="C#" MasterPageFile="~/Aspx/Common/Master/testBlankScreen.master" AutoEventWireup="true" Inherits="WebForms_Sample.Aspx.Ord.OrdDetailedView" Codebehind="OrdDetailedView.aspx.cs" EnableEventValidation="false" %>
 <%@ Register Assembly="OpenTouryo.CustomControl" Namespace="Touryo.Infrastructure.CustomControl" TagPrefix="cc1" %>
 
 <asp:Content ID="cphHeaderScripts" ContentPlaceHolderID="cphHeaderScripts" Runat="Server">
@@ -73,6 +73,38 @@
     </table>
 
     <cc1:WebCustomLabel ID="lblMessage" runat="server" Width="700px"></cc1:WebCustomLabel>
+
+    <h5>明細（Order Details）</h5>
+
+    <%-- ［明細行追加］はグリッド外のボタン（空行＝RowState:Added を足す） --%>
+    <cc1:WebCustomButton ID="btnAddDetail" runat="server" Text="明細行追加" Width="120px" />
+
+    <%-- 共通仕様：一覧表示は GridView（DataSource にバインド）。
+         ★ グリッド内のコントロールには自動結線の接頭辞（ddl/txt 等）を付けない。
+           付けると行ごとに SelectedIndexChanged 等が不要に自動結線されるため。
+         ★ DDL の選択値の設定は RowDataBound（.NET 標準イベント）で行う。 --%>
+    <div style="overflow-x: auto;">
+    <asp:GridView ID="gvwDetails" runat="server" AutoGenerateColumns="False"
+                  CssClass="table table-sm table-bordered" OnRowDataBound="gvwDetails_RowDataBound">
+        <Columns>
+            <asp:TemplateField HeaderText="商品（Products）">
+                <ItemTemplate><asp:DropDownList ID="ProductID" runat="server" Width="260px"></asp:DropDownList></ItemTemplate>
+            </asp:TemplateField>
+            <asp:TemplateField HeaderText="単価">
+                <ItemTemplate><asp:TextBox ID="UnitPrice" runat="server" Width="80px"></asp:TextBox></ItemTemplate>
+            </asp:TemplateField>
+            <asp:TemplateField HeaderText="数量">
+                <ItemTemplate><asp:TextBox ID="Quantity" runat="server" Width="60px"></asp:TextBox></ItemTemplate>
+            </asp:TemplateField>
+            <asp:TemplateField HeaderText="割引">
+                <ItemTemplate><asp:TextBox ID="Discount" runat="server" Width="60px"></asp:TextBox></ItemTemplate>
+            </asp:TemplateField>
+            <%-- 行ごとの［更新］［削除］。RowCommand で InnerButtonID を見て振り分ける。 --%>
+            <asp:ButtonField CommandName="Update" Text="更新" ButtonType="Button" />
+            <asp:ButtonField CommandName="Delete" Text="削除" ButtonType="Button" />
+        </Columns>
+    </asp:GridView>
+    </div>
 </asp:Content>
 
 <asp:Content ID="cphFooterScripts" ContentPlaceHolderID="cphFooterScripts" Runat="Server">

@@ -37,6 +37,15 @@
 
     bool canInsert = Model.IsNew && !Model.CudDone;
     bool canUpdate = !Model.IsNew && !Model.CudDone;
+
+    // 明細のセル値（DataTable は型付きなので表示用の文字列にする）
+    Func<DataRow, string, string> detailCell = (dr, col) =>
+    {
+        if (!dr.Table.Columns.Contains(col)) { return ""; }
+        object v = dr[col];
+        if (v == null || v == DBNull.Value) { return ""; }
+        return Convert.ToString(v);
+    };
 }
 
 @section HeaderScriptsSection{
@@ -157,6 +166,72 @@
             <td><input class="form-control form-control-sm" name="DetailShipCountry" value="@Model.DetailShipCountry" /></td>
         </tr>
     </table>
+
+    @* ---------------- 明細（Order Details） ---------------- *@
+    <h5 class="mt-3">明細（Order Details）</h5>
+
+    @* ［明細行追加］はグリッド外のボタン（空行＝RowState:Added を足す） *@
+    <button type="submit" class="btn btn-success btn-sm mb-2"
+            formaction="@Url.Action("AddDetailRow", "OrdDetailedView")">明細行追加</button>
+
+    @* 共通仕様：一覧は table タグを自前で生成し、tr タグをループで実装する *@
+    <div style="overflow-x: auto;">
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th style="width: 300px;">商品（Products）</th>
+                <th>単価（UnitPrice）</th>
+                <th>数量（Quantity）</th>
+                <th>割引（Discount）</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.OrderDetails != null)
+            {
+                @* ★ ここはコード文脈なので for に @ を付けない（付けると Razor パースエラー） *@
+                for (int i = 0; i < Model.OrderDetails.Rows.Count; i++)
+                {
+                    DataRow ddr = Model.OrderDetails.Rows[i];
+
+                    @* ★ Deleted 行は描画しない（DefaultView から外れる） *@
+                    if (ddr.RowState == DataRowState.Deleted) { continue; }
+
+                    int di = i;   @* ★ 表示連番ではなく DataTable の行インデックスを持ち回る *@
+                    string productId = detailCell(ddr, "ProductID");
+
+                    <tr>
+                        @* ★ di は Deleted を飛ばすので 0 起点の連番にならない。
+                             Rows.Index が無いとコレクションのモデルバインドが空になり、編集が静かに捨てられる。 *@
+                        <input type="hidden" name="DetailRows.Index" value="@di" />
+                        <input type="hidden" name="DetailRows[@di].RowIndex" value="@di" />
+                        <td>
+                            <select class="form-control form-control-sm" name="DetailRows[@di].ProductID">
+                                @if (Model.Products != null)
+                                {
+                                    foreach (DataRow pr in Model.Products.Rows)
+                                    {
+                                        string pid = Convert.ToString(pr["ProductID"]);
+                                        <option value="@pid" selected="@(productId == pid)">@pr["ProductName"]</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td><input class="form-control form-control-sm" name="DetailRows[@di].UnitPrice" value="@detailCell(ddr, "UnitPrice")" /></td>
+                        <td><input class="form-control form-control-sm" name="DetailRows[@di].Quantity" value="@detailCell(ddr, "Quantity")" /></td>
+                        <td><input class="form-control form-control-sm" name="DetailRows[@di].Discount" value="@detailCell(ddr, "Discount")" /></td>
+                        <td style="white-space: nowrap;">
+                            <button type="submit" class="btn btn-primary btn-sm"
+                                    formaction="@Url.Action("UpdateDetailRow", "OrdDetailedView", new { rowIndex = di })">更新</button>
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    formaction="@Url.Action("DeleteDetailRow", "OrdDetailedView", new { rowIndex = di })">削除</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    </div>
 </form>
 
 @* 共通仕様：メイン ボタンはフッタ部に5つ。★ form="formOrdDetail" が無いと押しても無反応。
