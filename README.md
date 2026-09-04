@@ -1,10 +1,14 @@
-# 前提
-- .NETは、net48、net10.0 が前提
-- Open棟梁は03-30開発中のdevelopを使用（2026/8）
-- 使用したCodingAgentは、ClaudeCode（モデルはClaude Opus 5）
-- LocalServicesOnDockerでDB（ローカル・サービス）を動かしておく。
+# 概要
+Open棟梁向けに開発されたコーディング・エージェントのスキルを実験・検証するリポジトリ
 
-# 入力したプロンプト
+## 前提
+- CodingAgentは、ClaudeCode（モデルはClaude Opus 5）
+- .NETは、net48、net10.0 が前提
+- [Open棟梁](https://github.com/OpenTouryoProject/OpenTouryo)はdevelopを使用(.dosc/prompt/検証プロンプト.md）
+- [OpenTouryoCodingAgentAssets](https://github.com/OpenTouryoProject/OpenTouryoCodingAgentAssets)から最新スキル（main）をインストール。
+- [LocalServicesOnDocker](https://github.com/NetDevInfraWGinOSSConsortium/LocalServicesOnDocker)でDB（ローカル・サービス）を動かしておく。
+
+## プロンプト
 docのplan、specを参照するので以下の非常に短いプロンプトのみで検証可能。
 
 - .\docs\prompt\検証プロンプト.md の セットアップ > 基本 の Core、Transformを実行して下さい。
